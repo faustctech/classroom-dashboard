@@ -60,6 +60,18 @@
     .btn:hover, select:hover { background: var(--accent-color); border-color: var(--accent-color); }
     .btn-action { background: var(--accent-color); }
     .btn-action:hover { background: var(--accent-hover); }
+    .btn-danger { background: #7f1d1d; }
+    .btn-danger:hover { background: #991b1b; }
+
+    .class-manager-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
 
     /* Dashboard Layout & Drag/Drop Grid */
     .dashboard {
@@ -177,6 +189,15 @@
 
   <header>
     <h2>Classroom Board</h2>
+    
+    <!-- Class Period Management Controls -->
+    <div class="class-manager-group">
+      <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class:</span>
+      <select id="class-selector" onchange="switchClassPeriod(this.value)"></select>
+      <button class="btn" onclick="addNewClassPeriod()">➕</button>
+      <button class="btn btn-danger" onclick="deleteCurrentClassPeriod()">🗑️</button>
+    </div>
+
     <div class="toolbar">
       <button class="btn" onclick="toggleWidget('clock-widget')">⏰ Clock</button>
       <button class="btn" onclick="toggleWidget('timer-widget')">⏱️ Timer</button>
@@ -317,6 +338,90 @@
       widget.style.display = (widget.style.display === 'none') ? 'flex' : 'none';
     }
 
+    // --- Class Period Roster System ---
+    let classData = JSON.parse(localStorage.getItem('classroom_classes')) || {
+      "Period 1": "Alex\nSam\nJordan\nTaylor\nMorgan\nCasey",
+      "Period 2": "Chris\nPat\nRiley\nJamie\nDakota\nAvery",
+      "Period 3": "Jesse\nReese\nSkyler\nQuinn\nPeyton\nRowan"
+    };
+    let currentClass = localStorage.getItem('classroom_current_class') || "Period 1";
+
+    const nameListArea = document.getElementById('name-list');
+    const groupListArea = document.getElementById('group-name-list');
+    const classSelector = document.getElementById('class-selector');
+
+    function renderClassDropdown() {
+      classSelector.innerHTML = '';
+      for (let className in classData) {
+        const opt = document.createElement('option');
+        opt.value = className;
+        opt.textContent = className;
+        if (className === currentClass) opt.selected = true;
+        classSelector.appendChild(opt);
+      }
+      loadRosterToWidgets();
+    }
+
+    function loadRosterToWidgets() {
+      const activeRoster = classData[currentClass] || '';
+      nameListArea.value = activeRoster;
+      groupListArea.value = activeRoster;
+    }
+
+    function saveActiveRoster() {
+      classData[currentClass] = nameListArea.value;
+      localStorage.setItem('classroom_classes', JSON.stringify(classData));
+    }
+
+    function switchClassPeriod(val) {
+      saveActiveRoster();
+      currentClass = val;
+      localStorage.setItem('classroom_current_class', currentClass);
+      loadRosterToWidgets();
+    }
+
+    function addNewClassPeriod() {
+      const name = prompt("Enter new Class / Period name (e.g. 'Period 4' or 'Math 101'):");
+      if (name && name.trim()) {
+        const trimmed = name.trim();
+        if (!classData[trimmed]) {
+          classData[trimmed] = "";
+        }
+        currentClass = trimmed;
+        localStorage.setItem('classroom_current_class', currentClass);
+        saveActiveRoster();
+        renderClassDropdown();
+      }
+    }
+
+    function deleteCurrentClassPeriod() {
+      const keys = Object.keys(classData);
+      if (keys.length <= 1) {
+        alert("You must keep at least one class period!");
+        return;
+      }
+      if (confirm(`Delete roster for "${currentClass}"?`)) {
+        delete classData[currentClass];
+        currentClass = Object.keys(classData)[0];
+        localStorage.setItem('classroom_current_class', currentClass);
+        localStorage.setItem('classroom_classes', JSON.stringify(classData));
+        renderClassDropdown();
+      }
+    }
+
+    // Sync input across textareas in real-time
+    nameListArea.addEventListener('input', () => {
+      groupListArea.value = nameListArea.value;
+      saveActiveRoster();
+    });
+    groupListArea.addEventListener('input', () => {
+      nameListArea.value = groupListArea.value;
+      saveActiveRoster();
+    });
+
+    // Initial Load for Class Manager
+    renderClassDropdown();
+
     // --- Digital Clock Logic ---
     let is24Hour = false;
     function updateClock() {
@@ -382,7 +487,6 @@
       let names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
       if (names.length === 0) return;
 
-      // Fisher-Yates Shuffle
       for (let i = names.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [names[i], names[j]] = [names[j], names[i]];
@@ -424,9 +528,9 @@
         osc.stop(ctx.currentTime + startTime + duration);
       };
 
-      playNote(523.25, 0.0, 0.4); // C5
-      playNote(659.25, 0.2, 0.4); // E5
-      playNote(783.99, 0.4, 0.8); // G5
+      playNote(523.25, 0.0, 0.4);
+      playNote(659.25, 0.2, 0.4);
+      playNote(783.99, 0.4, 0.8);
     }
 
     // --- Timer Logic ---
