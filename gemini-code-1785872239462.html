@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Classroom Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.15);
+      --text-color: #f8fafc;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    
+    body {
+      background-color: var(--bg-color);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-image 0.4s ease;
+    }
+
+    /* Top Navigation Toolbar */
+    header {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    
+    .btn, select {
+      background: rgba(30, 41, 59, 0.8);
+      color: #fff;
+      border: 1px solid var(--card-border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+    .btn:hover, select:hover { background: var(--accent-color); border-color: var(--accent-color); }
+    .btn-action { background: var(--accent-color); }
+    .btn-action:hover { background: var(--accent-hover); }
+
+    /* Dashboard Layout & Drag/Drop Grid */
+    .dashboard {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+
+    .widget {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .widget:active { cursor: grabbing; }
+    .widget.dragging { opacity: 0.4; transform: scale(0.98); border: 2px dashed var(--accent-color); }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+    }
+    .widget-title { font-size: 1.05rem; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
+    .drag-handle { cursor: grab; opacity: 0.5; font-size: 1.1rem; }
+
+    /* Specific Widget Styling */
+    .display-large { font-size: 2.8rem; font-weight: 700; text-align: center; font-family: monospace; letter-spacing: 2px; }
+    .sub-display { text-align: center; color: #94a3b8; font-size: 0.95rem; font-weight: 500; }
+    .inputs-row { display: flex; gap: 8px; justify-content: center; align-items: center; }
+    
+    input[type="number"], textarea, select {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      outline: none;
+    }
+    textarea { width: 100%; height: 90px; resize: vertical; cursor: text; }
+
+    .result-box {
+      font-size: 1.8rem;
+      font-weight: bold;
+      text-align: center;
+      min-height: 55px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f59e0b;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 6px;
+    }
+
+    /* Dice Specific */
+    .dice-display { font-size: 3.5rem; letter-spacing: 12px; line-height: 1; }
+
+    /* Group Output Box */
+    .group-output {
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Noise Meter */
+    .meter-container {
+      width: 100%;
+      height: 24px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: #10b981;
+      transition: width 0.1s ease, background-color 0.2s ease;
+    }
+
+    /* Status Icons */
+    .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .status-btn {
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      text-align: center;
+      font-weight: bold;
+      cursor: pointer;
+      opacity: 0.35;
+      transition: all 0.2s;
+    }
+    .status-btn.active { opacity: 1; transform: scale(1.04); }
+    .status-red { background: #7f1d1d; color: #fca5a5; }
+    .status-yellow { background: #78350f; color: #fde68a; }
+    .status-green { background: #064e3b; color: #6ee7b7; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Classroom Board</h2>
+    <div class="toolbar">
+      <button class="btn" onclick="toggleWidget('clock-widget')">⏰ Clock</button>
+      <button class="btn" onclick="toggleWidget('timer-widget')">⏱️ Timer</button>
+      <button class="btn" onclick="toggleWidget('picker-widget')">🎲 Picker</button>
+      <button class="btn" onclick="toggleWidget('dice-widget')">🎲 Dice</button>
+      <button class="btn" onclick="toggleWidget('group-widget')">👥 Groups</button>
+      <button class="btn" onclick="toggleWidget('noise-widget')">🎙️ Noise</button>
+      <button class="btn" onclick="toggleWidget('status-widget')">🚦 Status</button>
+      <button class="btn" onclick="toggleWidget('notes-widget')">📝 Notes</button>
+      
+      <!-- Background Options -->
+      <select id="bg-selector" onchange="handleBgChange(this.value)">
+        <option value="default">🎨 Dark Gradient</option>
+        <option value="nature">🌲 Forest Landscape</option>
+        <option value="classroom">🏫 Classroom Ambient</option>
+        <option value="space">🌌 Deep Space</option>
+        <option value="custom">📁 Upload Custom Image...</option>
+      </select>
+      <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="uploadCustomBg(event)">
+    </div>
+  </header>
+
+  <main class="dashboard" id="dashboard">
+
+    <!-- Digital Clock Widget -->
+    <div class="widget" id="clock-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Digital Clock</span>
+        <button class="btn" onclick="toggleWidget('clock-widget')">✕</button>
+      </div>
+      <div class="display-large" id="clock-display">00:00:00 AM</div>
+      <div class="sub-display" id="clock-date">Loading date...</div>
+      <div class="inputs-row">
+        <button class="btn" onclick="toggleClockFormat()">Toggle 12/24h</button>
+      </div>
+    </div>
+
+    <!-- Timer Widget -->
+    <div class="widget" id="timer-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Timer</span>
+        <button class="btn" onclick="toggleWidget('timer-widget')">✕</button>
+      </div>
+      <div class="display-large" id="timer-display">05:00</div>
+      <div class="inputs-row">
+        <input type="number" id="timer-min" placeholder="Min" min="0" value="5" style="width: 70px;">
+        <button class="btn btn-action" onclick="startTimer()">Start</button>
+        <button class="btn" onclick="pauseTimer()">Pause</button>
+        <button class="btn" onclick="resetTimer()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Dice Roller Widget -->
+    <div class="widget" id="dice-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Dice Roller</span>
+        <button class="btn" onclick="toggleWidget('dice-widget')">✕</button>
+      </div>
+      <div class="result-box dice-display" id="dice-result">⚀</div>
+      <div class="sub-display" id="dice-sum">Total: 1</div>
+      <div class="inputs-row">
+        <label for="dice-count" style="font-size: 0.85rem;">Dice:</label>
+        <select id="dice-count" style="width: 70px;">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+        <button class="btn btn-action" onclick="rollDice()">Roll</button>
+      </div>
+    </div>
+
+    <!-- Group Generator Widget -->
+    <div class="widget" id="group-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Group Maker</span>
+        <button class="btn" onclick="toggleWidget('group-widget')">✕</button>
+      </div>
+      <textarea id="group-name-list" placeholder="Enter student names (one per line)..."></textarea>
+      <div class="inputs-row">
+        <input type="number" id="group-size" value="3" min="2" style="width: 80px;" placeholder="Size">
+        <button class="btn btn-action" onclick="generateGroups()">Make Groups</button>
+      </div>
+      <div class="group-output" id="group-results"></div>
+    </div>
+
+    <!-- Random Name Picker Widget -->
+    <div class="widget" id="picker-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Random Picker</span>
+        <button class="btn" onclick="toggleWidget('picker-widget')">✕</button>
+      </div>
+      <textarea id="name-list" placeholder="Enter list (one name per line)..."></textarea>
+      <button class="btn btn-action" onclick="pickRandomName()">Pick Random</button>
+      <div class="result-box" id="picker-result">?</div>
+    </div>
+
+    <!-- Noise Meter Widget -->
+    <div class="widget" id="noise-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Noise Monitor</span>
+        <button class="btn" onclick="toggleWidget('noise-widget')">✕</button>
+      </div>
+      <div class="meter-container">
+        <div class="meter-fill" id="meter-fill"></div>
+      </div>
+      <button class="btn btn-action" id="mic-btn" onclick="initNoiseMeter()">Enable Mic</button>
+    </div>
+
+    <!-- Work Status Widget -->
+    <div class="widget" id="status-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Work Mode</span>
+        <button class="btn" onclick="toggleWidget('status-widget')">✕</button>
+      </div>
+      <div class="status-grid">
+        <div class="status-btn status-red" id="st-red" onclick="setStatus('red')">Silence</div>
+        <div class="status-btn status-yellow" id="st-yellow" onclick="setStatus('yellow')">Whisper</div>
+        <div class="status-btn status-green" id="st-green" onclick="setStatus('green')">Group Work</div>
+      </div>
+    </div>
+
+    <!-- Notes Widget -->
+    <div class="widget" id="notes-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Notes & Agenda</span>
+        <button class="btn" onclick="toggleWidget('notes-widget')">✕</button>
+      </div>
+      <textarea id="notes-content" style="height: 120px;" placeholder="Write daily announcements or instructions..."></textarea>
+    </div>
+
+  </main>
+
+  <script>
+    // --- Toggle Visibility ---
+    function toggleWidget(id) {
+      const widget = document.getElementById(id);
+      widget.style.display = (widget.style.display === 'none') ? 'flex' : 'none';
+    }
+
+    // --- Digital Clock Logic ---
+    let is24Hour = false;
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      let ampm = '';
+
+      if (!is24Hour) {
+        ampm = hours >= 12 ? ' PM' : ' AM';
+        hours = hours % 12 || 12;
+      }
+      hours = String(hours).padStart(2, '0');
+
+      document.getElementById('clock-display').textContent = `${hours}:${minutes}:${seconds}${ampm}`;
+      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+      document.getElementById('clock-date').textContent = now.toLocaleDateString(undefined, options);
+    }
+    function toggleClockFormat() {
+      is24Hour = !is24Hour;
+      updateClock();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- Dice Roller Logic ---
+    function rollDice() {
+      const count = parseInt(document.getElementById('dice-count').value) || 1;
+      const resultContainer = document.getElementById('dice-result');
+      const sumContainer = document.getElementById('dice-sum');
+      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+      let counter = 0;
+
+      const shuffle = setInterval(() => {
+        let tempRolls = [];
+        for (let i = 0; i < count; i++) {
+          tempRolls.push(diceFaces[Math.floor(Math.random() * 6)]);
+        }
+        resultContainer.textContent = tempRolls.join(' ');
+        sumContainer.textContent = 'Rolling...';
+        counter++;
+
+        if (counter > 10) {
+          clearInterval(shuffle);
+          let finalRolls = [];
+          let sum = 0;
+          for (let i = 0; i < count; i++) {
+            const val = Math.floor(Math.random() * 6) + 1;
+            finalRolls.push(diceFaces[val - 1]);
+            sum += val;
+          }
+          resultContainer.textContent = finalRolls.join(' ');
+          sumContainer.textContent = `Total: ${sum}`;
+        }
+      }, 60);
+    }
+
+    // --- Random Group Generator Logic ---
+    function generateGroups() {
+      const text = document.getElementById('group-name-list').value.trim();
+      if (!text) return;
+      let names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+      if (names.length === 0) return;
+
+      // Fisher-Yates Shuffle
+      for (let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+      }
+
+      const groupSize = parseInt(document.getElementById('group-size').value) || 3;
+      const output = document.getElementById('group-results');
+      output.innerHTML = '';
+
+      let groupNum = 1;
+      for (let i = 0; i < names.length; i += groupSize) {
+        const groupMembers = names.slice(i, i + groupSize);
+        const groupDiv = document.createElement('div');
+        groupDiv.style.background = 'rgba(0,0,0,0.25)';
+        groupDiv.style.padding = '8px';
+        groupDiv.style.borderRadius = '6px';
+        groupDiv.style.fontSize = '0.9rem';
+        groupDiv.innerHTML = `<strong>Group ${groupNum++}:</strong> ${groupMembers.join(', ')}`;
+        output.appendChild(groupDiv);
+      }
+    }
+
+    // --- Web Audio API Synth Sound (Timer Chime) ---
+    function playAlarmChime() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+
+      const playNote = (freq, startTime, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + startTime);
+        osc.stop(ctx.currentTime + startTime + duration);
+      };
+
+      playNote(523.25, 0.0, 0.4); // C5
+      playNote(659.25, 0.2, 0.4); // E5
+      playNote(783.99, 0.4, 0.8); // G5
+    }
+
+    // --- Timer Logic ---
+    let timerInterval = null;
+    let totalSeconds = 300;
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const secs = (totalSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+    }
+
+    function startTimer() {
+      if (timerInterval) return;
+      const inputMins = parseInt(document.getElementById('timer-min').value);
+      if (!isNaN(inputMins) && totalSeconds === 300) {
+        totalSeconds = inputMins * 60;
+      }
+      timerInterval = setInterval(() => {
+        if (totalSeconds > 0) {
+          totalSeconds--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          playAlarmChime();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      const inputMins = parseInt(document.getElementById('timer-min').value) || 5;
+      totalSeconds = inputMins * 60;
+      updateTimerDisplay();
+    }
+
+    // --- Random Name Picker ---
+    function pickRandomName() {
+      const text = document.getElementById('name-list').value.trim();
+      if (!text) return;
+      const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+      if (names.length === 0) return;
+
+      const resultContainer = document.getElementById('picker-result');
+      let counter = 0;
+      const shuffle = setInterval(() => {
+        resultContainer.textContent = names[Math.floor(Math.random() * names.length)];
+        counter++;
+        if (counter > 15) {
+          clearInterval(shuffle);
+          const winner = names[Math.floor(Math.random() * names.length)];
+          resultContainer.textContent = `🎉 ${winner}`;
+        }
+      }, 50);
+    }
+
+    // --- Noise Meter ---
+    let audioCtx, analyser, micStream;
+    async function initNoiseMeter() {
+      const btn = document.getElementById('mic-btn');
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        btn.textContent = 'Active';
+        btn.style.background = '#10b981';
+        btn.disabled = true;
+
+        function renderMeter() {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          let volumePercentage = Math.min(100, Math.round(((sum / dataArray.length) / 128) * 100));
+
+          const meterFill = document.getElementById('meter-fill');
+          meterFill.style.width = volumePercentage + '%';
+          if (volumePercentage > 65) meterFill.style.backgroundColor = '#ef4444';
+          else if (volumePercentage > 35) meterFill.style.backgroundColor = '#f59e0b';
+          else meterFill.style.backgroundColor = '#10b981';
+
+          requestAnimationFrame(renderMeter);
+        }
+        renderMeter();
+      } catch (err) {
+        alert('Microphone permission required for noise meter.');
+      }
+    }
+
+    // --- Work Status ---
+    function setStatus(type) {
+      document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+      if (type) document.getElementById(`st-${type}`).classList.add('active');
+    }
+
+    // --- Background Selector & Custom Upload ---
+    const bgPresets = {
+      default: 'none',
+      nature: 'url("https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80")',
+      classroom: 'url("https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1920&q=80")',
+      space: 'url("https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1920&q=80")'
+    };
+
+    function handleBgChange(val) {
+      if (val === 'custom') {
+        document.getElementById('bg-upload').click();
+      } else {
+        document.body.style.backgroundImage = bgPresets[val];
+      }
+    }
+
+    function uploadCustomBg(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.body.style.backgroundImage = `url("${e.target.result}")`;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // --- Drag and Drop Reordering Logic ---
+    const dashboard = document.getElementById('dashboard');
+    let draggedItem = null;
+
+    dashboard.addEventListener('dragstart', (e) => {
+      if (e.target.classList.contains('widget')) {
+        draggedItem = e.target;
+        e.target.classList.add('dragging');
+      }
+    });
+
+    dashboard.addEventListener('dragend', (e) => {
+      if (e.target.classList.contains('widget')) {
+        e.target.classList.remove('dragging');
+        draggedItem = null;
+      }
+    });
+
+    dashboard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const afterElement = getDragAfterElement(dashboard, e.clientX, e.clientY);
+      if (draggedItem) {
+        if (afterElement == null) {
+          dashboard.appendChild(draggedItem);
+        } else {
+          dashboard.insertBefore(draggedItem, afterElement);
+        }
+      }
+    });
+
+    function getDragAfterElement(container, x, y) {
+      const draggableElements = [...container.querySelectorAll('.widget:not(.dragging)')];
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // Persistence for Notes
+    const notesArea = document.getElementById('notes-content');
+    notesArea.value = localStorage.getItem('dashboard_notes') || '';
+    notesArea.addEventListener('input', () => {
+      localStorage.setItem('dashboard_notes', notesArea.value);
+    });
+  </script>
+</body>
+</html>
