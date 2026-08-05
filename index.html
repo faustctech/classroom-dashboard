@@ -58,6 +58,8 @@
       font-size: 0.9rem;
     }
     .btn:hover, select:hover { background: var(--accent-color); border-color: var(--accent-color); }
+    select optgroup { background: #0f172a; color: #94a3b8; font-weight: bold; }
+    select option { background: #1e293b; color: #fff; }
     .btn-action { background: var(--accent-color); }
     .btn-action:hover { background: var(--accent-hover); }
     .btn-danger { background: #7f1d1d; }
@@ -202,11 +204,29 @@
     <div class="class-manager-group">
       <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Theme:</span>
       <select id="bg-selector" onchange="handleBgChange(this.value)">
-        <option value="default">🎨 Dark Gradient</option>
-        <option value="nature">🌲 Forest Landscape</option>
-        <option value="classroom">🏫 Classroom Ambient</option>
-        <option value="space">🌌 Deep Space</option>
-        <option value="custom">📁 Upload Custom Image...</option>
+        <optgroup label="Default">
+          <option value="default">🎨 Dark Gradient</option>
+        </optgroup>
+        <optgroup label="Elementary School">
+          <option value="chalkboard">✏️ Chalkboard</option>
+          <option value="watercolor">🎨 Bright Watercolor</option>
+          <option value="space">🚀 Outer Space</option>
+          <option value="jungle">🦁 Safari Jungle</option>
+        </optgroup>
+        <optgroup label="Middle School">
+          <option value="gaming">🎮 Retro Gaming</option>
+          <option value="neon">🌆 Vaporwave / Neon</option>
+          <option value="geometric">📐 Abstract Geometry</option>
+        </optgroup>
+        <optgroup label="High School">
+          <option value="library">📚 Classic Library</option>
+          <option value="coffeeshop">☕ Cozy Coffee Shop</option>
+          <option value="botanical">🌿 Minimal Botanical</option>
+          <option value="city">🏙️ Sunset Cityscape</option>
+        </optgroup>
+        <optgroup label="Custom">
+          <option value="custom">📁 Upload Custom Image...</option>
+        </optgroup>
       </select>
       <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="uploadCustomBg(event)">
     </div>
@@ -639,19 +659,30 @@
       if (type) document.getElementById(`st-${type}`).classList.add('active');
     }
 
-    // --- Background Selector & Custom Upload ---
+    // --- Grade-Level Background Selector & Custom Upload ---
     const bgPresets = {
       default: 'none',
-      nature: 'url("https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80")',
-      classroom: 'url("https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1920&q=80")',
-      space: 'url("https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1920&q=80")'
+      // Elementary School
+      chalkboard: 'url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1920&q=80")',
+      watercolor: 'url("https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80")',
+      space: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")',
+      jungle: 'url("https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80")',
+      // Middle School
+      gaming: 'url("https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80")',
+      neon: 'url("https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80")',
+      geometric: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80")',
+      // High School
+      library: 'url("https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80")',
+      coffeeshop: 'url("https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1920&q=80")',
+      botanical: 'url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1920&q=80")',
+      city: 'url("https://images.unsplash.com/photo-1477959858617-67f30ac4ce78?auto=format&fit=crop&w=1920&q=80")'
     };
 
     function handleBgChange(val) {
       if (val === 'custom') {
         document.getElementById('bg-upload').click();
       } else {
-        document.body.style.backgroundImage = bgPresets[val];
+        document.body.style.backgroundImage = bgPresets[val] || 'none';
       }
     }
 
