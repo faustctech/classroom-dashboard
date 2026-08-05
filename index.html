@@ -198,6 +198,20 @@
       <button class="btn btn-danger" onclick="deleteCurrentClassPeriod()">🗑️</button>
     </div>
 
+    <!-- Theme / Background Selector -->
+    <div class="class-manager-group">
+      <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Theme:</span>
+      <select id="bg-selector" onchange="handleBgChange(this.value)">
+        <option value="default">🎨 Dark Gradient</option>
+        <option value="nature">🌲 Forest Landscape</option>
+        <option value="classroom">🏫 Classroom Ambient</option>
+        <option value="space">🌌 Deep Space</option>
+        <option value="custom">📁 Upload Custom Image...</option>
+      </select>
+      <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="uploadCustomBg(event)">
+    </div>
+
+    <!-- Widget Toggle Toolbar -->
     <div class="toolbar">
       <button class="btn" onclick="toggleWidget('clock-widget')">⏰ Clock</button>
       <button class="btn" onclick="toggleWidget('timer-widget')">⏱️ Timer</button>
@@ -207,16 +221,6 @@
       <button class="btn" onclick="toggleWidget('noise-widget')">🎙️ Noise</button>
       <button class="btn" onclick="toggleWidget('status-widget')">🚦 Status</button>
       <button class="btn" onclick="toggleWidget('notes-widget')">📝 Notes</button>
-      
-      <!-- Background Options -->
-      <select id="bg-selector" onchange="handleBgChange(this.value)">
-        <option value="default">🎨 Dark Gradient</option>
-        <option value="nature">🌲 Forest Landscape</option>
-        <option value="classroom">🏫 Classroom Ambient</option>
-        <option value="space">🌌 Deep Space</option>
-        <option value="custom">📁 Upload Custom Image...</option>
-      </select>
-      <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="uploadCustomBg(event)">
     </div>
   </header>
 
