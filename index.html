@@ -117,7 +117,7 @@
     .sub-display { text-align: center; color: #94a3b8; font-size: 0.95rem; font-weight: 500; }
     .inputs-row { display: flex; gap: 8px; justify-content: center; align-items: center; }
     
-    input[type="number"], textarea, select {
+    input[type="text"], input[type="number"], textarea, select {
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid var(--card-border);
       color: #fff;
@@ -185,6 +185,40 @@
     .status-red { background: #7f1d1d; color: #fca5a5; }
     .status-yellow { background: #78350f; color: #fde68a; }
     .status-green { background: #064e3b; color: #6ee7b7; }
+
+    /* Quick Links Widget */
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .link-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .link-card:hover { background: var(--accent-color); border-color: var(--accent-color); }
+    .link-del-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 4px;
+    }
+    .link-del-btn:hover { color: #fca5a5; }
   </style>
 </head>
 <body>
@@ -235,6 +269,7 @@
     <div class="toolbar">
       <button class="btn" onclick="toggleWidget('clock-widget')">⏰ Clock</button>
       <button class="btn" onclick="toggleWidget('timer-widget')">⏱️ Timer</button>
+      <button class="btn" onclick="toggleWidget('links-widget')">🔗 Shortcuts</button>
       <button class="btn" onclick="toggleWidget('picker-widget')">🎲 Picker</button>
       <button class="btn" onclick="toggleWidget('dice-widget')">🎲 Dice</button>
       <button class="btn" onclick="toggleWidget('group-widget')">👥 Groups</button>
@@ -271,6 +306,30 @@
         <button class="btn btn-action" onclick="startTimer()">Start</button>
         <button class="btn" onclick="pauseTimer()">Pause</button>
         <button class="btn" onclick="resetTimer()">Reset</button>
+      </div>
+      <div class="inputs-row">
+        <label for="timer-sound" style="font-size: 0.85rem; color: #cbd5e1;">Sound Alert:</label>
+        <select id="timer-sound" style="font-size: 0.85rem;">
+          <option value="chime">🔔 Gentle Chime</option>
+          <option value="beep">📟 Digital Beep</option>
+          <option value="bell">🏫 School Bell</option>
+          <option value="fanfare">🎉 Victory Fanfare</option>
+        </select>
+        <button class="btn" onclick="testTimerSound()" style="padding: 4px 8px; font-size: 0.8rem;">🔊 Test</button>
+      </div>
+    </div>
+
+    <!-- Quick Links Widget -->
+    <div class="widget" id="links-widget" draggable="true">
+      <div class="widget-header">
+        <span class="widget-title"><span class="drag-handle">⠿</span> Quick Shortcuts</span>
+        <button class="btn" onclick="toggleWidget('links-widget')">✕</button>
+      </div>
+      <div id="links-container" class="links-grid"></div>
+      <div class="inputs-row" style="flex-wrap: wrap; gap: 6px;">
+        <input type="text" id="link-title" placeholder="Site Name" style="flex: 1; min-width: 90px; font-size: 0.85rem;">
+        <input type="text" id="link-url" placeholder="https://..." style="flex: 1.5; min-width: 120px; font-size: 0.85rem;">
+        <button class="btn btn-action" onclick="addQuickLink()" style="font-size: 0.85rem;">➕ Add</button>
       </div>
     </div>
 
@@ -443,7 +502,6 @@
       saveActiveRoster();
     });
 
-    // Initial Load for Class Manager
     renderClassDropdown();
 
     // --- Digital Clock Logic ---
@@ -533,16 +591,16 @@
       }
     }
 
-    // --- Web Audio API Synth Sound (Timer Chime) ---
-    function playAlarmChime() {
+    // --- Custom Synthesized Sound Alerts for Timer ---
+    function playAlarmSound(type) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
 
-      const playNote = (freq, startTime, duration) => {
+      const playNote = (freq, startTime, duration, soundType = 'sine') => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
+        osc.type = soundType;
         osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
         gain.gain.setValueAtTime(0.3, ctx.currentTime + startTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
@@ -552,9 +610,28 @@
         osc.stop(ctx.currentTime + startTime + duration);
       };
 
-      playNote(523.25, 0.0, 0.4);
-      playNote(659.25, 0.2, 0.4);
-      playNote(783.99, 0.4, 0.8);
+      if (type === 'beep') {
+        playNote(880, 0.0, 0.15, 'square');
+        playNote(880, 0.2, 0.15, 'square');
+        playNote(880, 0.4, 0.3, 'square');
+      } else if (type === 'bell') {
+        playNote(440, 0.0, 1.2, 'triangle');
+        playNote(880, 0.0, 1.2, 'sine');
+      } else if (type === 'fanfare') {
+        playNote(523.25, 0.0, 0.15); // C5
+        playNote(659.25, 0.15, 0.15); // E5
+        playNote(783.99, 0.30, 0.15); // G5
+        playNote(1046.50, 0.45, 0.6); // C6
+      } else { // 'chime' default
+        playNote(523.25, 0.0, 0.4);
+        playNote(659.25, 0.2, 0.4);
+        playNote(783.99, 0.4, 0.8);
+      }
+    }
+
+    function testTimerSound() {
+      const soundType = document.getElementById('timer-sound').value;
+      playAlarmSound(soundType);
     }
 
     // --- Timer Logic ---
@@ -580,7 +657,8 @@
         } else {
           clearInterval(timerInterval);
           timerInterval = null;
-          playAlarmChime();
+          const soundType = document.getElementById('timer-sound').value;
+          playAlarmSound(soundType);
         }
       }, 1000);
     }
@@ -596,6 +674,57 @@
       totalSeconds = inputMins * 60;
       updateTimerDisplay();
     }
+
+    // --- Quick Links Widget Logic ---
+    let defaultLinks = [
+      { name: "Classroom", url: "https://classroom.google.com" },
+      { name: "Kahoot", url: "https://kahoot.com" },
+      { name: "YouTube", url: "https://youtube.com" },
+      { name: "Canvas", url: "https://canvas.instructure.com" }
+    ];
+
+    let quickLinks = JSON.parse(localStorage.getItem('classroom_quick_links')) || defaultLinks;
+
+    function renderQuickLinks() {
+      const container = document.getElementById('links-container');
+      container.innerHTML = '';
+      quickLinks.forEach((link, idx) => {
+        const a = document.createElement('a');
+        a.className = 'link-card';
+        a.href = link.url;
+        a.target = '_blank';
+        a.innerHTML = `<span>🌐 ${link.name}</span><button class="link-del-btn" onclick="deleteQuickLink(event, ${idx})">✕</button>`;
+        container.appendChild(a);
+      });
+    }
+
+    function addQuickLink() {
+      const nameInput = document.getElementById('link-title');
+      const urlInput = document.getElementById('link-url');
+      let name = nameInput.value.trim();
+      let url = urlInput.value.trim();
+
+      if (!name || !url) return;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+
+      quickLinks.push({ name, url });
+      localStorage.setItem('classroom_quick_links', JSON.stringify(quickLinks));
+      nameInput.value = '';
+      urlInput.value = '';
+      renderQuickLinks();
+    }
+
+    function deleteQuickLink(event, index) {
+      event.preventDefault();
+      event.stopPropagation();
+      quickLinks.splice(index, 1);
+      localStorage.setItem('classroom_quick_links', JSON.stringify(quickLinks));
+      renderQuickLinks();
+    }
+
+    renderQuickLinks();
 
     // --- Random Name Picker ---
     function pickRandomName() {
@@ -659,19 +788,16 @@
       if (type) document.getElementById(`st-${type}`).classList.add('active');
     }
 
-    // --- Grade-Level Background Selector & Custom Upload ---
+    // --- Background Selector & Custom Upload ---
     const bgPresets = {
       default: 'none',
-      // Elementary School
       chalkboard: 'url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1920&q=80")',
       watercolor: 'url("https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80")',
       space: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")',
       jungle: 'url("https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80")',
-      // Middle School
       gaming: 'url("https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80")',
       neon: 'url("https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80")',
       geometric: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80")',
-      // High School
       library: 'url("https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80")',
       coffeeshop: 'url("https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1920&q=80")',
       botanical: 'url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1920&q=80")',
