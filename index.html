@@ -17,10 +17,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     
     body {
-      background-color: var(--bg-color);
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
+      background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed;
       color: var(--text-color);
       min-height: 100vh;
       display: flex;
@@ -298,6 +295,13 @@
     <div class="control-group">
       <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Theme:</span>
       <select id="bg-selector" onchange="handleBgChange(this.value)">
+        <optgroup label="Seasonal Themes">
+          <option value="summer" selected>☀️ Sunny Beach</option>
+          <option value="spring">🌸 Spring Blossom</option>
+          <option value="autumn">🍁 Autumn / Fall Leaves</option>
+          <option value="winter">❄️ Winter Snow</option>
+          <option value="halloween">🎃 Autumn Fest / Halloween</option>
+        </optgroup>
         <optgroup label="Default">
           <option value="default">🎨 Dark Gradient</option>
         </optgroup>
@@ -311,13 +315,6 @@
           <option value="agenda_desk">🗓️ Flat Lay Planner Desk</option>
           <option value="agenda_cork">📌 Corkboard Notice Board</option>
           <option value="agenda_board">📋 Clean Slate Wall</option>
-        </optgroup>
-        <optgroup label="Seasonal Themes">
-          <option value="spring">🌸 Spring Blossom</option>
-          <option value="summer">☀️ Sunny Beach</option>
-          <option value="autumn">🍁 Autumn / Fall Leaves</option>
-          <option value="winter">❄️ Winter Snow</option>
-          <option value="halloween">🎃 Autumn Fest / Halloween</option>
         </optgroup>
         <optgroup label="Solid Colors">
           <option value="solid_green">🟩 Chalkboard Green</option>
@@ -621,7 +618,7 @@
     // --- Board Presets System ---
     let presetsData = JSON.parse(localStorage.getItem('classroom_presets')) || {
       "Default Setup": {
-        theme: "default",
+        theme: "summer",
         currentClass: "Period 1",
         notes: "Welcome to class! Check today's schedule.",
         positions: {},
@@ -649,7 +646,7 @@
       });
 
       return {
-        theme: document.getElementById('bg-selector').value || 'default',
+        theme: document.getElementById('bg-selector').value || 'summer',
         currentClass: currentClass,
         notes: document.getElementById('notes-content').value || '',
         positions: JSON.parse(localStorage.getItem('classroom_widget_positions')) || {},
@@ -800,12 +797,10 @@
       if (presetsData[currentPreset]) {
         applyPresetState(presetsData[currentPreset]);
       } else {
-        const savedBg = localStorage.getItem('classroom_selected_bg');
-        if (savedBg) {
-          const bgSelector = document.getElementById('bg-selector');
-          if (bgSelector) bgSelector.value = savedBg;
-          handleBgChange(savedBg);
-        }
+        const savedBg = localStorage.getItem('classroom_selected_bg') || 'summer';
+        const bgSelector = document.getElementById('bg-selector');
+        if (bgSelector) bgSelector.value = savedBg;
+        handleBgChange(savedBg);
       }
     });
 
@@ -1072,17 +1067,14 @@
     let mediaList = JSON.parse(localStorage.getItem('classroom_media_list')) || defaultVideos;
     let activeMediaIndex = 0;
 
-    // Intelligent parser for Google Slides, Canva, and YouTube
     function parseEmbedUrl(rawUrl) {
       let url = rawUrl.trim();
 
-      // Extract iframe src if teacher pastes raw HTML embed code
       if (url.includes('<iframe') && url.includes('src="')) {
         const match = url.match(/src="([^"]+)"/);
         if (match) url = match[1];
       }
 
-      // YouTube conversion
       if (url.includes('youtu.be/')) {
         const id = url.split('youtu.be/')[1].split('?')[0];
         return `https://www.youtube.com/embed/${id}`;
@@ -1092,13 +1084,11 @@
         return `https://www.youtube.com/embed/${id}`;
       }
 
-      // Google Slides conversion
       if (url.includes('docs.google.com/presentation/d/')) {
         const base = url.split('/edit')[0].split('/pub')[0].split('/embed')[0];
         return `${base}/embed?start=false&loop=false&delayms=3000`;
       }
 
-      // Canva conversion
       if (url.includes('canva.com/design/')) {
         if (!url.includes('view?embed')) {
           const base = url.split('?')[0];
@@ -1281,6 +1271,7 @@
     // --- Background Presets Configuration ---
     const bgPresets = {
       default: { background: "#0f172a" },
+      summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       lined: { 
         background: "#faf8f5", 
         backgroundImage: "linear-gradient(90deg, transparent 79px, #ff8a8a 79px, #ff8a8a 81px, transparent 81px), linear-gradient(#cbd5e1 1px, transparent 0)",
@@ -1301,7 +1292,6 @@
       agenda_cork: { background: "url('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       agenda_board: { background: "url('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       spring: { background: "url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       autumn: { background: "url('https://images.unsplash.com/photo-1507181179412-1e890295f84e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       winter: { background: "url('https://images.unsplash.com/photo-1483664852095-d6cc6870702d?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       halloween: { background: "url('https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
