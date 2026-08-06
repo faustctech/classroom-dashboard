@@ -229,7 +229,7 @@
     }
     .link-del-btn:hover { color: #fca5a5; }
 
-    /* Media Player Widget */
+    /* Media & Presentation Player Widget */
     .video-container {
       position: relative;
       width: 100%;
@@ -355,7 +355,7 @@
     <div class="toolbar">
       <button class="btn" onclick="toggleWidget('clock-widget')">⏰ Clock</button>
       <button class="btn" onclick="toggleWidget('timer-widget')">⏱️ Timer</button>
-      <button class="btn" onclick="toggleWidget('media-widget')">📺 Media</button>
+      <button class="btn" onclick="toggleWidget('media-widget')">📊 Slides & Media</button>
       <button class="btn" onclick="toggleWidget('links-widget')">🔗 Shortcuts</button>
       <button class="btn" onclick="toggleWidget('picker-widget')">🎲 Picker</button>
       <button class="btn" onclick="toggleWidget('dice-widget')">🎲 Dice</button>
@@ -407,10 +407,10 @@
       </div>
     </div>
 
-    <!-- Media / Video Player Widget -->
-    <div class="widget" id="media-widget" style="width: 380px;">
+    <!-- Media & Presentation Player Widget (Google Slides, Canva, YouTube) -->
+    <div class="widget" id="media-widget" style="width: 420px;">
       <div class="widget-header">
-        <span class="widget-title"><span class="drag-handle">⠿</span> Video & Media Player</span>
+        <span class="widget-title"><span class="drag-handle">⠿</span> Slides & Media Player</span>
         <button class="btn" onclick="toggleWidget('media-widget')">✕</button>
       </div>
       <div class="video-container">
@@ -418,8 +418,8 @@
       </div>
       <div id="media-list" class="media-playlist"></div>
       <div class="inputs-row" style="flex-wrap: wrap; gap: 6px;">
-        <input type="text" id="media-title" placeholder="Title (e.g. Lesson Video)" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
-        <input type="text" id="media-url" placeholder="YouTube URL..." style="flex: 1.5; min-width: 120px; font-size: 0.85rem;">
+        <input type="text" id="media-title" placeholder="Title (e.g. History Slides)" style="flex: 1; min-width: 110px; font-size: 0.85rem;">
+        <input type="text" id="media-url" placeholder="Google Slides, Canva, or YouTube URL..." style="flex: 1.5; min-width: 140px; font-size: 0.85rem;">
         <button class="btn btn-action" onclick="addMediaVideo()" style="font-size: 0.85rem;">➕ Add</button>
       </div>
     </div>
@@ -618,7 +618,7 @@
       });
     });
 
-    // --- Board Presets / Multi-Teacher Profiles System ---
+    // --- Board Presets System ---
     let presetsData = JSON.parse(localStorage.getItem('classroom_presets')) || {
       "Default Setup": {
         theme: "default",
@@ -666,35 +666,30 @@
     function applyPresetState(state) {
       if (!state) return;
 
-      // Restore Theme
       if (state.theme) {
         const bgSelector = document.getElementById('bg-selector');
         bgSelector.value = state.theme;
         handleBgChange(state.theme);
       }
 
-      // Restore Class Period
       if (state.currentClass && classData[state.currentClass]) {
         currentClass = state.currentClass;
         localStorage.setItem('classroom_current_class', currentClass);
         renderClassDropdown();
       }
 
-      // Restore Notes
       if (state.notes !== undefined) {
         const notesArea = document.getElementById('notes-content');
         notesArea.value = state.notes;
         localStorage.setItem('dashboard_notes', state.notes);
       }
 
-      // Restore Widget Positions
       if (state.positions) {
         savedPositions = state.positions;
         localStorage.setItem('classroom_widget_positions', JSON.stringify(savedPositions));
         positionWidgets();
       }
 
-      // Restore Widget Visibility
       if (state.visibility) {
         widgets.forEach(w => {
           if (state.visibility[w.id] === false) {
@@ -714,7 +709,7 @@
     }
 
     function saveNewPresetPrompt() {
-      const name = prompt("Enter a name for this Board Setup (e.g. 'Morning Warmup', 'Math Block', 'Mr. Smith'):");
+      const name = prompt("Enter a name for this Board Setup:");
       if (name && name.trim()) {
         const trimmed = name.trim();
         currentPreset = trimmed;
@@ -740,7 +735,6 @@
       }
     }
 
-    // Export Setup JSON File
     function exportSetupToFile() {
       saveCurrentStateToPreset();
       const exportObject = {
@@ -760,7 +754,6 @@
       downloadAnchor.remove();
     }
 
-    // Import Setup JSON File
     function importSetupFromFile(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -804,7 +797,6 @@
       renderPresetDropdown();
       positionWidgets();
       
-      // Load Current Active Preset
       if (presetsData[currentPreset]) {
         applyPresetState(presetsData[currentPreset]);
       } else {
@@ -861,12 +853,10 @@
     }
 
     function addNewClassPeriod() {
-      const name = prompt("Enter new Class / Period name (e.g. 'Period 4' or 'Math 101'):");
+      const name = prompt("Enter new Class / Period name:");
       if (name && name.trim()) {
         const trimmed = name.trim();
-        if (!classData[trimmed]) {
-          classData[trimmed] = "";
-        }
+        if (!classData[trimmed]) classData[trimmed] = "";
         currentClass = trimmed;
         localStorage.setItem('classroom_current_class', currentClass);
         saveActiveRoster();
@@ -1073,7 +1063,7 @@
       updateTimerDisplay();
     }
 
-    // --- Media / Video Widget Logic ---
+    // --- Slides & Media Player Logic (Google Slides, Canva, YouTube) ---
     let defaultVideos = [
       { name: "📺 Classroom Video 1", url: "https://www.youtube.com/embed/3Tv7K0FlP7I" },
       { name: "📺 Classroom Video 2", url: "https://www.youtube.com/embed/BF7KCRDzaAw" }
@@ -1082,7 +1072,17 @@
     let mediaList = JSON.parse(localStorage.getItem('classroom_media_list')) || defaultVideos;
     let activeMediaIndex = 0;
 
-    function parseYouTubeEmbed(url) {
+    // Intelligent parser for Google Slides, Canva, and YouTube
+    function parseEmbedUrl(rawUrl) {
+      let url = rawUrl.trim();
+
+      // Extract iframe src if teacher pastes raw HTML embed code
+      if (url.includes('<iframe') && url.includes('src="')) {
+        const match = url.match(/src="([^"]+)"/);
+        if (match) url = match[1];
+      }
+
+      // YouTube conversion
       if (url.includes('youtu.be/')) {
         const id = url.split('youtu.be/')[1].split('?')[0];
         return `https://www.youtube.com/embed/${id}`;
@@ -1091,6 +1091,22 @@
         const id = urlParams.get('v');
         return `https://www.youtube.com/embed/${id}`;
       }
+
+      // Google Slides conversion
+      if (url.includes('docs.google.com/presentation/d/')) {
+        const base = url.split('/edit')[0].split('/pub')[0].split('/embed')[0];
+        return `${base}/embed?start=false&loop=false&delayms=3000`;
+      }
+
+      // Canva conversion
+      if (url.includes('canva.com/design/')) {
+        if (!url.includes('view?embed')) {
+          const base = url.split('?')[0];
+          return `${base}/view?embed`;
+        }
+        return url;
+      }
+
       return url;
     }
 
@@ -1127,7 +1143,7 @@
 
       if (!title || !rawUrl) return;
 
-      const embedUrl = parseYouTubeEmbed(rawUrl);
+      const embedUrl = parseEmbedUrl(rawUrl);
       mediaList.push({ name: title, url: embedUrl });
       localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
       
@@ -1153,8 +1169,8 @@
     let defaultLinks = [
       { name: "Classroom", url: "https://classroom.google.com" },
       { name: "Kahoot", url: "https://kahoot.com" },
-      { name: "YouTube", url: "https://youtube.com" },
-      { name: "Canvas", url: "https://canvas.instructure.com" }
+      { name: "Canva", url: "https://canva.com" },
+      { name: "Google Drive", url: "https://drive.google.com" }
     ];
 
     let quickLinks = JSON.parse(localStorage.getItem('classroom_quick_links')) || defaultLinks;
@@ -1262,11 +1278,9 @@
       if (type) document.getElementById(`st-${type}`).classList.add('active');
     }
 
-    // --- Background Presets Configuration (STUDENT-FREE OPTION REPLACEMENTS) ---
+    // --- Background Presets Configuration ---
     const bgPresets = {
       default: { background: "#0f172a" },
-
-      // Paper & Canvas (Pure CSS Patterns - No images/people)
       lined: { 
         background: "#faf8f5", 
         backgroundImage: "linear-gradient(90deg, transparent 79px, #ff8a8a 79px, #ff8a8a 81px, transparent 81px), linear-gradient(#cbd5e1 1px, transparent 0)",
@@ -1283,36 +1297,26 @@
         backgroundSize: "24px 24px"
       },
       anchorchart: { background: "url('https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-
-      // Daily Agenda Templates (Empty Flat-Lays / Corkboard)
       agenda_desk: { background: "url('https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       agenda_cork: { background: "url('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       agenda_board: { background: "url('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-
-      // Seasonal Themes (Nature Landscapes - No People)
       spring: { background: "url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       autumn: { background: "url('https://images.unsplash.com/photo-1507181179412-1e890295f84e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       winter: { background: "url('https://images.unsplash.com/photo-1483664852095-d6cc6870702d?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       halloween: { background: "url('https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-
-      // Solid Colors
       solid_green: { background: "#1b4332" },
       solid_slate: { background: "#0f172a" },
       solid_blue: { background: "#0284c7" },
       solid_pastel_blue: { background: "#e0f2fe" },
       solid_cream: { background: "#fef3c7" },
       solid_purple: { background: "#581c87" },
-
-      // Gradients
       grad_sunset: { background: "linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%) fixed" },
       grad_ocean: { background: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%) fixed" },
       grad_northern: { background: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) fixed" },
       grad_midnight: { background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) fixed" },
       grad_peach: { background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) fixed" },
       grad_forest: { background: "linear-gradient(135deg, #064e3b 0%, #022c22 100%) fixed" },
-
-      // Classroom Atmosphere (Pure Textures & Empty Interiors - Zero People)
       chalkboard: { background: "url('https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       watercolor: { background: "url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       space: { background: "url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
@@ -1335,7 +1339,6 @@
         return;
       }
 
-      // Reset base background CSS properties
       document.body.style.background = '';
       document.body.style.backgroundImage = '';
       document.body.style.backgroundSize = '';
