@@ -66,7 +66,7 @@
     .btn-danger { background: #7f1d1d; }
     .btn-danger:hover { background: #991b1b; }
 
-    .class-manager-group {
+    .control-group {
       display: flex;
       gap: 6px;
       align-items: center;
@@ -275,8 +275,19 @@
   <header>
     <h2>Classroom Board</h2>
     
+    <!-- Saved Presets / Board Setup Switcher -->
+    <div class="control-group">
+      <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Board Setup:</span>
+      <select id="preset-selector" onchange="switchPreset(this.value)"></select>
+      <button class="btn btn-action" onclick="saveNewPresetPrompt()" title="Save Current Board Layout">💾 Save</button>
+      <button class="btn btn-danger" onclick="deleteCurrentPreset()" title="Delete Current Board Setup">🗑️</button>
+      <button class="btn" onclick="exportSetupToFile()" title="Export Setup to File">📥 Export</button>
+      <button class="btn" onclick="document.getElementById('import-file-input').click()" title="Import Setup from File">📤 Import</button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importSetupFromFile(event)">
+    </div>
+
     <!-- Class Period Management Controls -->
-    <div class="class-manager-group">
+    <div class="control-group">
       <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Class:</span>
       <select id="class-selector" onchange="switchClassPeriod(this.value)"></select>
       <button class="btn" onclick="addNewClassPeriod()">➕</button>
@@ -284,7 +295,7 @@
     </div>
 
     <!-- Theme / Background Selector -->
-    <div class="class-manager-group">
+    <div class="control-group">
       <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">Theme:</span>
       <select id="bg-selector" onchange="handleBgChange(this.value)">
         <optgroup label="Default">
@@ -513,6 +524,7 @@
     function toggleWidget(id) {
       const widget = document.getElementById(id);
       widget.style.display = (widget.style.display === 'none') ? 'flex' : 'none';
+      saveCurrentStateToPreset();
     }
 
     // --- Absolute Free-Floating Drag & Drop System ---
@@ -556,6 +568,7 @@
       localStorage.removeItem('classroom_widget_positions');
       savedPositions = {};
       positionWidgets();
+      saveCurrentStateToPreset();
     }
 
     widgets.forEach(widget => {
@@ -597,6 +610,7 @@
             zIndex: widget.style.zIndex
           };
           localStorage.setItem('classroom_widget_positions', JSON.stringify(savedPositions));
+          saveCurrentStateToPreset();
         }
 
         widget.addEventListener('pointermove', onPointerMove);
@@ -604,15 +618,202 @@
       });
     });
 
+    // --- Board Presets / Multi-Teacher Profiles System ---
+    let presetsData = JSON.parse(localStorage.getItem('classroom_presets')) || {
+      "Default Setup": {
+        theme: "default",
+        currentClass: "Period 1",
+        notes: "Welcome to class! Check today's schedule.",
+        positions: {},
+        visibility: {}
+      }
+    };
+    let currentPreset = localStorage.getItem('classroom_current_preset') || "Default Setup";
+
+    function renderPresetDropdown() {
+      const selector = document.getElementById('preset-selector');
+      selector.innerHTML = '';
+      for (let pName in presetsData) {
+        const opt = document.createElement('option');
+        opt.value = pName;
+        opt.textContent = pName;
+        if (pName === currentPreset) opt.selected = true;
+        selector.appendChild(opt);
+      }
+    }
+
+    function captureCurrentBoardState() {
+      const vis = {};
+      widgets.forEach(w => {
+        vis[w.id] = (w.style.display !== 'none');
+      });
+
+      return {
+        theme: document.getElementById('bg-selector').value || 'default',
+        currentClass: currentClass,
+        notes: document.getElementById('notes-content').value || '',
+        positions: JSON.parse(localStorage.getItem('classroom_widget_positions')) || {},
+        visibility: vis
+      };
+    }
+
+    function saveCurrentStateToPreset() {
+      if (!presetsData[currentPreset]) return;
+      presetsData[currentPreset] = captureCurrentBoardState();
+      localStorage.setItem('classroom_presets', JSON.stringify(presetsData));
+    }
+
+    function applyPresetState(state) {
+      if (!state) return;
+
+      // Restore Theme
+      if (state.theme) {
+        const bgSelector = document.getElementById('bg-selector');
+        bgSelector.value = state.theme;
+        handleBgChange(state.theme);
+      }
+
+      // Restore Class Period
+      if (state.currentClass && classData[state.currentClass]) {
+        currentClass = state.currentClass;
+        localStorage.setItem('classroom_current_class', currentClass);
+        renderClassDropdown();
+      }
+
+      // Restore Notes
+      if (state.notes !== undefined) {
+        const notesArea = document.getElementById('notes-content');
+        notesArea.value = state.notes;
+        localStorage.setItem('dashboard_notes', state.notes);
+      }
+
+      // Restore Widget Positions
+      if (state.positions) {
+        savedPositions = state.positions;
+        localStorage.setItem('classroom_widget_positions', JSON.stringify(savedPositions));
+        positionWidgets();
+      }
+
+      // Restore Widget Visibility
+      if (state.visibility) {
+        widgets.forEach(w => {
+          if (state.visibility[w.id] === false) {
+            w.style.display = 'none';
+          } else {
+            w.style.display = 'flex';
+          }
+        });
+      }
+    }
+
+    function switchPreset(val) {
+      saveCurrentStateToPreset();
+      currentPreset = val;
+      localStorage.setItem('classroom_current_preset', currentPreset);
+      applyPresetState(presetsData[currentPreset]);
+    }
+
+    function saveNewPresetPrompt() {
+      const name = prompt("Enter a name for this Board Setup (e.g. 'Morning Warmup', 'Math Block', 'Mr. Smith'):");
+      if (name && name.trim()) {
+        const trimmed = name.trim();
+        currentPreset = trimmed;
+        saveCurrentStateToPreset();
+        localStorage.setItem('classroom_current_preset', currentPreset);
+        renderPresetDropdown();
+      }
+    }
+
+    function deleteCurrentPreset() {
+      const keys = Object.keys(presetsData);
+      if (keys.length <= 1) {
+        alert("You must keep at least one Board Setup preset!");
+        return;
+      }
+      if (confirm(`Delete board setup profile "${currentPreset}"?`)) {
+        delete presetsData[currentPreset];
+        currentPreset = Object.keys(presetsData)[0];
+        localStorage.setItem('classroom_current_preset', currentPreset);
+        localStorage.setItem('classroom_presets', JSON.stringify(presetsData));
+        renderPresetDropdown();
+        applyPresetState(presetsData[currentPreset]);
+      }
+    }
+
+    // Export Setup JSON File
+    function exportSetupToFile() {
+      saveCurrentStateToPreset();
+      const exportObject = {
+        presetName: currentPreset,
+        boardData: presetsData[currentPreset],
+        classRosters: classData,
+        quickLinks: quickLinks,
+        mediaList: mediaList
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${currentPreset.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_board_setup.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Import Setup JSON File
+    function importSetupFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.presetName && imported.boardData) {
+            const pName = imported.presetName;
+            presetsData[pName] = imported.boardData;
+            currentPreset = pName;
+
+            if (imported.classRosters) classData = imported.classRosters;
+            if (imported.quickLinks) quickLinks = imported.quickLinks;
+            if (imported.mediaList) mediaList = imported.mediaList;
+
+            localStorage.setItem('classroom_presets', JSON.stringify(presetsData));
+            localStorage.setItem('classroom_current_preset', currentPreset);
+            localStorage.setItem('classroom_classes', JSON.stringify(classData));
+            localStorage.setItem('classroom_quick_links', JSON.stringify(quickLinks));
+            localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
+
+            renderPresetDropdown();
+            renderClassDropdown();
+            renderQuickLinks();
+            renderMediaList();
+            applyPresetState(presetsData[currentPreset]);
+            alert(`Board Setup "${pName}" successfully loaded!`);
+          } else {
+            alert("Invalid configuration file format.");
+          }
+        } catch(err) {
+          alert("Error reading JSON setup file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      renderPresetDropdown();
       positionWidgets();
       
-      // Restore Saved Background Theme
-      const savedBg = localStorage.getItem('classroom_selected_bg');
-      if (savedBg) {
-        const bgSelector = document.getElementById('bg-selector');
-        if (bgSelector) bgSelector.value = savedBg;
-        handleBgChange(savedBg);
+      // Load Current Active Preset
+      if (presetsData[currentPreset]) {
+        applyPresetState(presetsData[currentPreset]);
+      } else {
+        const savedBg = localStorage.getItem('classroom_selected_bg');
+        if (savedBg) {
+          const bgSelector = document.getElementById('bg-selector');
+          if (bgSelector) bgSelector.value = savedBg;
+          handleBgChange(savedBg);
+        }
       }
     });
 
@@ -656,6 +857,7 @@
       currentClass = val;
       localStorage.setItem('classroom_current_class', currentClass);
       loadRosterToWidgets();
+      saveCurrentStateToPreset();
     }
 
     function addNewClassPeriod() {
@@ -669,6 +871,7 @@
         localStorage.setItem('classroom_current_class', currentClass);
         saveActiveRoster();
         renderClassDropdown();
+        saveCurrentStateToPreset();
       }
     }
 
@@ -684,6 +887,7 @@
         localStorage.setItem('classroom_current_class', currentClass);
         localStorage.setItem('classroom_classes', JSON.stringify(classData));
         renderClassDropdown();
+        saveCurrentStateToPreset();
       }
     }
 
@@ -1127,6 +1331,7 @@
           document.getElementById('bg-upload').click();
         }
         localStorage.setItem('classroom_selected_bg', 'custom');
+        saveCurrentStateToPreset();
         return;
       }
 
@@ -1143,6 +1348,7 @@
       }
       
       localStorage.setItem('classroom_selected_bg', val);
+      saveCurrentStateToPreset();
     }
 
     function uploadCustomBg(event) {
@@ -1154,6 +1360,7 @@
           document.body.style.background = `url("${dataUrl}") center/cover fixed`;
           localStorage.setItem('classroom_custom_bg_data', dataUrl);
           localStorage.setItem('classroom_selected_bg', 'custom');
+          saveCurrentStateToPreset();
         };
         reader.readAsDataURL(file);
       }
@@ -1164,6 +1371,7 @@
     notesArea.value = localStorage.getItem('dashboard_notes') || '';
     notesArea.addEventListener('input', () => {
       localStorage.setItem('dashboard_notes', notesArea.value);
+      saveCurrentStateToPreset();
     });
   </script>
 </body>
