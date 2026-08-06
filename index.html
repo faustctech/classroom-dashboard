@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg-color: #0f172a;
-      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-bg: rgba(15, 23, 42, 0.85);
       --card-border: rgba(255, 255, 255, 0.15);
       --text-color: #f8fafc;
       --accent-color: #3b82f6;
@@ -26,11 +26,12 @@
       display: flex;
       flex-direction: column;
       transition: background-image 0.4s ease;
+      overflow-x: hidden;
     }
 
     /* Top Navigation Toolbar */
     header {
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.9);
       backdrop-filter: blur(12px);
       padding: 12px 24px;
       display: flex;
@@ -39,7 +40,7 @@
       border-bottom: 1px solid var(--card-border);
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 10000;
       flex-wrap: wrap;
       gap: 10px;
     }
@@ -75,32 +76,40 @@
       border: 1px solid var(--card-border);
     }
 
-    /* Dashboard Layout & Drag/Drop Grid */
+    /* Free-Floating Board Canvas */
     .dashboard {
-      padding: 24px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-      align-items: start;
+      position: relative;
+      flex: 1;
+      width: 100vw;
+      min-height: calc(100vh - 75px);
+      padding: 10px;
     }
 
     .widget {
+      position: absolute;
+      width: 340px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      cursor: grab;
+      gap: 12px;
+      touch-action: none; /* Enables smooth dragging on touch screens */
       user-select: none;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: box-shadow 0.2s ease;
     }
 
-    .widget:active { cursor: grabbing; }
-    .widget.dragging { opacity: 0.4; transform: scale(0.98); border: 2px dashed var(--accent-color); }
+    .widget:active {
+      box-shadow: 0 15px 35px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Allow normal touch & scroll inside inputs and scrollable boxes */
+    input, textarea, select, button, iframe, .group-output, .links-grid, .media-playlist { 
+      touch-action: auto; 
+    }
 
     .widget-header {
       display: flex;
@@ -108,9 +117,10 @@
       align-items: center;
       border-bottom: 1px solid var(--card-border);
       padding-bottom: 8px;
+      cursor: move; /* Drag cursor hint */
     }
     .widget-title { font-size: 1.05rem; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
-    .drag-handle { cursor: grab; opacity: 0.5; font-size: 1.1rem; }
+    .drag-handle { cursor: move; opacity: 0.6; font-size: 1.1rem; }
 
     /* Specific Widget Styling */
     .display-large { font-size: 2.8rem; font-weight: 700; text-align: center; font-family: monospace; letter-spacing: 2px; }
@@ -317,13 +327,14 @@
       <button class="btn" onclick="toggleWidget('noise-widget')">🎙️ Noise</button>
       <button class="btn" onclick="toggleWidget('status-widget')">🚦 Status</button>
       <button class="btn" onclick="toggleWidget('notes-widget')">📝 Notes</button>
+      <button class="btn btn-action" onclick="resetWidgetPositions()">🔄 Reset Positions</button>
     </div>
   </header>
 
   <main class="dashboard" id="dashboard">
 
     <!-- Digital Clock Widget -->
-    <div class="widget" id="clock-widget" draggable="true">
+    <div class="widget" id="clock-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Digital Clock</span>
         <button class="btn" onclick="toggleWidget('clock-widget')">✕</button>
@@ -336,7 +347,7 @@
     </div>
 
     <!-- Timer Widget -->
-    <div class="widget" id="timer-widget" draggable="true">
+    <div class="widget" id="timer-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Timer</span>
         <button class="btn" onclick="toggleWidget('timer-widget')">✕</button>
@@ -361,7 +372,7 @@
     </div>
 
     <!-- Media / Video Player Widget -->
-    <div class="widget" id="media-widget" draggable="true">
+    <div class="widget" id="media-widget" style="width: 380px;">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Video & Media Player</span>
         <button class="btn" onclick="toggleWidget('media-widget')">✕</button>
@@ -378,7 +389,7 @@
     </div>
 
     <!-- Quick Links Widget -->
-    <div class="widget" id="links-widget" draggable="true">
+    <div class="widget" id="links-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Quick Shortcuts</span>
         <button class="btn" onclick="toggleWidget('links-widget')">✕</button>
@@ -392,7 +403,7 @@
     </div>
 
     <!-- Dice Roller Widget -->
-    <div class="widget" id="dice-widget" draggable="true">
+    <div class="widget" id="dice-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Dice Roller</span>
         <button class="btn" onclick="toggleWidget('dice-widget')">✕</button>
@@ -412,7 +423,7 @@
     </div>
 
     <!-- Group Generator Widget -->
-    <div class="widget" id="group-widget" draggable="true">
+    <div class="widget" id="group-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Group Maker</span>
         <button class="btn" onclick="toggleWidget('group-widget')">✕</button>
@@ -426,7 +437,7 @@
     </div>
 
     <!-- Random Name Picker Widget -->
-    <div class="widget" id="picker-widget" draggable="true">
+    <div class="widget" id="picker-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Random Picker</span>
         <button class="btn" onclick="toggleWidget('picker-widget')">✕</button>
@@ -437,7 +448,7 @@
     </div>
 
     <!-- Noise Meter Widget -->
-    <div class="widget" id="noise-widget" draggable="true">
+    <div class="widget" id="noise-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Noise Monitor</span>
         <button class="btn" onclick="toggleWidget('noise-widget')">✕</button>
@@ -449,7 +460,7 @@
     </div>
 
     <!-- Work Status Widget -->
-    <div class="widget" id="status-widget" draggable="true">
+    <div class="widget" id="status-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Work Mode</span>
         <button class="btn" onclick="toggleWidget('status-widget')">✕</button>
@@ -462,7 +473,7 @@
     </div>
 
     <!-- Notes Widget -->
-    <div class="widget" id="notes-widget" draggable="true">
+    <div class="widget" id="notes-widget">
       <div class="widget-header">
         <span class="widget-title"><span class="drag-handle">⠿</span> Notes & Agenda</span>
         <button class="btn" onclick="toggleWidget('notes-widget')">✕</button>
@@ -478,6 +489,102 @@
       const widget = document.getElementById(id);
       widget.style.display = (widget.style.display === 'none') ? 'flex' : 'none';
     }
+
+    // --- Absolute Free-Floating Drag & Drop System ---
+    const dashboard = document.getElementById('dashboard');
+    const widgets = document.querySelectorAll('.widget');
+    let highestZIndex = 10;
+
+    let savedPositions = JSON.parse(localStorage.getItem('classroom_widget_positions')) || {};
+
+    function positionWidgets() {
+      const margin = 16;
+      let col = 0, row = 0;
+      const colWidth = 360;
+      const rowHeight = 310;
+      const maxCols = Math.floor((window.innerWidth - margin * 2) / colWidth) || 1;
+
+      widgets.forEach((widget) => {
+        const id = widget.id;
+        if (savedPositions[id]) {
+          widget.style.left = savedPositions[id].left;
+          widget.style.top = savedPositions[id].top;
+          widget.style.zIndex = savedPositions[id].zIndex || 10;
+          if (savedPositions[id].zIndex > highestZIndex) highestZIndex = parseInt(savedPositions[id].zIndex);
+        } else {
+          // Calculate tiled layout across screen
+          const left = margin + (col * colWidth);
+          const top = margin + (row * rowHeight);
+          widget.style.left = `${left}px`;
+          widget.style.top = `${top}px`;
+          widget.style.zIndex = 10;
+
+          col++;
+          if (col >= maxCols) {
+            col = 0;
+            row++;
+          }
+        }
+      });
+    }
+
+    function resetWidgetPositions() {
+      localStorage.removeItem('classroom_widget_positions');
+      savedPositions = {};
+      positionWidgets();
+    }
+
+    widgets.forEach(widget => {
+      widget.addEventListener('pointerdown', (e) => {
+        // Ignore dragging when clicking inside interactive form controls
+        if (e.target.closest('input, textarea, select, button, a, iframe, .link-card, .status-btn, .media-item')) {
+          return;
+        }
+
+        // Bring current widget to the top layer
+        highestZIndex++;
+        widget.style.zIndex = highestZIndex;
+
+        const rect = widget.getBoundingClientRect();
+        const dashRect = dashboard.getBoundingClientRect();
+
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+
+        widget.setPointerCapture(e.pointerId);
+
+        function onPointerMove(ev) {
+          let newLeft = ev.clientX - dashRect.left - offsetX;
+          let newTop = ev.clientY - dashRect.top - offsetY;
+
+          // Outer border boundaries (allows snapping right up to the edges)
+          newLeft = Math.max(0, Math.min(newLeft, dashRect.width - rect.width));
+          newTop = Math.max(0, newTop);
+
+          widget.style.left = `${newLeft}px`;
+          widget.style.top = `${newTop}px`;
+        }
+
+        function onPointerUp(ev) {
+          try { widget.releasePointerCapture(ev.pointerId); } catch(err) {}
+          widget.removeEventListener('pointermove', onPointerMove);
+          widget.removeEventListener('pointerup', onPointerUp);
+
+          // Save position persistently
+          savedPositions[widget.id] = {
+            left: widget.style.left,
+            top: widget.style.top,
+            zIndex: widget.style.zIndex
+          };
+          localStorage.setItem('classroom_widget_positions', JSON.stringify(savedPositions));
+        }
+
+        widget.addEventListener('pointermove', onPointerMove);
+        widget.addEventListener('pointerup', onPointerUp);
+      });
+    });
+
+    window.addEventListener('DOMContentLoaded', positionWidgets);
 
     // --- Class Period Roster System ---
     let classData = JSON.parse(localStorage.getItem('classroom_classes')) || {
@@ -954,56 +1061,6 @@
         };
         reader.readAsDataURL(file);
       }
-    }
-
-    // --- Drag and Drop Reordering Logic ---
-    const dashboard = document.getElementById('dashboard');
-    let draggedItem = null;
-
-    dashboard.addEventListener('dragstart', (e) => {
-      // Prevent drag if interacting with interactive input controls
-      const tag = e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'IFRAME') {
-        return;
-      }
-
-      const widget = e.target.closest('.widget');
-      if (widget) {
-        draggedItem = widget;
-        setTimeout(() => widget.classList.add('dragging'), 0);
-      }
-    });
-
-    dashboard.addEventListener('dragend', (e) => {
-      if (draggedItem) {
-        draggedItem.classList.remove('dragging');
-        draggedItem = null;
-      }
-    });
-
-    dashboard.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      if (!draggedItem) return;
-
-      const afterElement = getDragAfterElement(dashboard, e.clientX, e.clientY);
-      if (afterElement == null) {
-        dashboard.appendChild(draggedItem);
-      } else {
-        dashboard.insertBefore(draggedItem, afterElement);
-      }
-    });
-
-    function getDragAfterElement(container, x, y) {
-      const draggableElements = [...container.querySelectorAll('.widget:not(.dragging)')];
-      return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - (box.top + box.height / 2);
-        if (offset < 0 && offset > closest.offset) {
-          return { offset: offset, element: child };
-        } else {
-          return closest;
-        }
-      }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
     // Persistence for Notes
