@@ -25,13 +25,13 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      transition: background-image 0.4s ease;
+      transition: background 0.3s ease;
       overflow-x: hidden;
     }
 
     /* Top Navigation Toolbar */
     header {
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(12px);
       padding: 12px 24px;
       display: flex;
@@ -97,7 +97,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      touch-action: none; /* Enables smooth dragging on touch screens */
+      touch-action: none;
       user-select: none;
       transition: box-shadow 0.2s ease;
     }
@@ -106,7 +106,6 @@
       box-shadow: 0 15px 35px rgba(59, 130, 246, 0.3);
     }
 
-    /* Allow normal touch & scroll inside inputs and scrollable boxes */
     input, textarea, select, button, iframe, .group-output, .links-grid, .media-playlist { 
       touch-action: auto; 
     }
@@ -117,7 +116,7 @@
       align-items: center;
       border-bottom: 1px solid var(--card-border);
       padding-bottom: 8px;
-      cursor: move; /* Drag cursor hint */
+      cursor: move;
     }
     .widget-title { font-size: 1.05rem; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
     .drag-handle { cursor: move; opacity: 0.6; font-size: 1.1rem; }
@@ -234,7 +233,7 @@
     .video-container {
       position: relative;
       width: 100%;
-      padding-bottom: 56.25%; /* 16:9 ratio */
+      padding-bottom: 56.25%;
       height: 0;
       background: #000;
       border-radius: 8px;
@@ -291,22 +290,48 @@
         <optgroup label="Default">
           <option value="default">🎨 Dark Gradient</option>
         </optgroup>
-        <optgroup label="Elementary School">
-          <option value="chalkboard">✏️ Chalkboard</option>
+        <optgroup label="Paper & Canvas">
+          <option value="lined">📝 Lined Notebook Paper</option>
+          <option value="grid">📐 Grid / Graph Paper</option>
+          <option value="dotgrid">⚪ Dot Grid Paper</option>
+          <option value="anchorchart">📌 Anchor Chart Wall</option>
+        </optgroup>
+        <optgroup label="Daily Agenda Templates">
+          <option value="agenda_desk">🗓️ Desk Agenda & Planner</option>
+          <option value="agenda_cork">📌 Corkboard Notice Board</option>
+          <option value="agenda_board">📋 Chalkboard Agenda Wall</option>
+        </optgroup>
+        <optgroup label="Seasonal Themes">
+          <option value="spring">🌸 Spring Blossom</option>
+          <option value="summer">☀️ Sunny Beach</option>
+          <option value="autumn">🍁 Autumn / Fall Leaves</option>
+          <option value="winter">❄️ Winter Snow</option>
+          <option value="halloween">🎃 Autumn Fest / Halloween</option>
+        </optgroup>
+        <optgroup label="Solid Colors">
+          <option value="solid_green">🟩 Chalkboard Green</option>
+          <option value="solid_slate">⬛ Dark Slate</option>
+          <option value="solid_blue">🟦 Classroom Blue</option>
+          <option value="solid_pastel_blue">🩵 Soft Pastel Blue</option>
+          <option value="solid_cream">🟨 Soft Warm Cream</option>
+          <option value="solid_purple">🟪 Deep Purple</option>
+        </optgroup>
+        <optgroup label="Gradients">
+          <option value="grad_sunset">🌅 Sunset Horizon</option>
+          <option value="grad_ocean">🌊 Ocean Calm</option>
+          <option value="grad_northern">🌌 Northern Lights</option>
+          <option value="grad_midnight">🌃 Midnight Glow</option>
+          <option value="grad_peach">🍑 Soft Warm Peach</option>
+          <option value="grad_forest">🌲 Emerald Forest</option>
+        </optgroup>
+        <optgroup label="Classroom Atmosphere">
+          <option value="chalkboard">✏️ Classic Chalkboard</option>
           <option value="watercolor">🎨 Bright Watercolor</option>
           <option value="space">🚀 Outer Space</option>
           <option value="jungle">🦁 Safari Jungle</option>
-        </optgroup>
-        <optgroup label="Middle School">
           <option value="gaming">🎮 Retro Gaming</option>
           <option value="neon">🌆 Vaporwave / Neon</option>
-          <option value="geometric">📐 Abstract Geometry</option>
-        </optgroup>
-        <optgroup label="High School">
           <option value="library">📚 Classic Library</option>
-          <option value="coffeeshop">☕ Cozy Coffee Shop</option>
-          <option value="botanical">🌿 Minimal Botanical</option>
-          <option value="city">🏙️ Sunset Cityscape</option>
         </optgroup>
         <optgroup label="Custom">
           <option value="custom">📁 Upload Custom Image...</option>
@@ -512,7 +537,6 @@
           widget.style.zIndex = savedPositions[id].zIndex || 10;
           if (savedPositions[id].zIndex > highestZIndex) highestZIndex = parseInt(savedPositions[id].zIndex);
         } else {
-          // Calculate tiled layout across screen
           const left = margin + (col * colWidth);
           const top = margin + (row * rowHeight);
           widget.style.left = `${left}px`;
@@ -536,12 +560,10 @@
 
     widgets.forEach(widget => {
       widget.addEventListener('pointerdown', (e) => {
-        // Ignore dragging when clicking inside interactive form controls
         if (e.target.closest('input, textarea, select, button, a, iframe, .link-card, .status-btn, .media-item')) {
           return;
         }
 
-        // Bring current widget to the top layer
         highestZIndex++;
         widget.style.zIndex = highestZIndex;
 
@@ -557,7 +579,6 @@
           let newLeft = ev.clientX - dashRect.left - offsetX;
           let newTop = ev.clientY - dashRect.top - offsetY;
 
-          // Outer border boundaries (allows snapping right up to the edges)
           newLeft = Math.max(0, Math.min(newLeft, dashRect.width - rect.width));
           newTop = Math.max(0, newTop);
 
@@ -570,7 +591,6 @@
           widget.removeEventListener('pointermove', onPointerMove);
           widget.removeEventListener('pointerup', onPointerUp);
 
-          // Save position persistently
           savedPositions[widget.id] = {
             left: widget.style.left,
             top: widget.style.top,
@@ -584,7 +604,17 @@
       });
     });
 
-    window.addEventListener('DOMContentLoaded', positionWidgets);
+    window.addEventListener('DOMContentLoaded', () => {
+      positionWidgets();
+      
+      // Restore Saved Background Theme
+      const savedBg = localStorage.getItem('classroom_selected_bg');
+      if (savedBg) {
+        const bgSelector = document.getElementById('bg-selector');
+        if (bgSelector) bgSelector.value = savedBg;
+        handleBgChange(savedBg);
+      }
+    });
 
     // --- Class Period Roster System ---
     let classData = JSON.parse(localStorage.getItem('classroom_classes')) || {
@@ -755,7 +785,7 @@
       }
     }
 
-    // --- Custom Synthesized Sound Alerts for Timer ---
+    // --- Sound Alerts for Timer ---
     function playAlarmSound(type) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
@@ -1028,28 +1058,91 @@
       if (type) document.getElementById(`st-${type}`).classList.add('active');
     }
 
-    // --- Background Selector & Custom Upload ---
+    // --- Background Presets Configuration ---
     const bgPresets = {
-      default: 'none',
-      chalkboard: 'url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1920&q=80")',
-      watercolor: 'url("https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80")',
-      space: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80")',
-      jungle: 'url("https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80")',
-      gaming: 'url("https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80")',
-      neon: 'url("https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80")',
-      geometric: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80")',
-      library: 'url("https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80")',
-      coffeeshop: 'url("https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1920&q=80")',
-      botanical: 'url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1920&q=80")',
-      city: 'url("https://images.unsplash.com/photo-1477959858617-67f30ac4ce78?auto=format&fit=crop&w=1920&q=80")'
+      default: { background: "#0f172a" },
+
+      // Paper & Canvas (Pure CSS Patterns)
+      lined: { 
+        background: "#faf8f5", 
+        backgroundImage: "linear-gradient(90deg, transparent 79px, #ff8a8a 79px, #ff8a8a 81px, transparent 81px), linear-gradient(#cbd5e1 1px, transparent 0)",
+        backgroundSize: "100% 100%, 100% 28px"
+      },
+      grid: { 
+        background: "#f0f4f8", 
+        backgroundImage: "linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)",
+        backgroundSize: "24px 24px"
+      },
+      dotgrid: {
+        background: "#faf8f5",
+        backgroundImage: "radial-gradient(#94a3b8 1.5px, transparent 1.5px)",
+        backgroundSize: "24px 24px"
+      },
+      anchorchart: { background: "url('https://images.unsplash.com/photo-1596495578065-6e0763fa1178?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+
+      // Daily Agenda Templates
+      agenda_desk: { background: "url('https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      agenda_cork: { background: "url('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      agenda_board: { background: "url('https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+
+      // Seasonal Themes
+      spring: { background: "url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      autumn: { background: "url('https://images.unsplash.com/photo-1507181179412-1e890295f84e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      winter: { background: "url('https://images.unsplash.com/photo-1483664852095-d6cc6870702d?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      halloween: { background: "url('https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+
+      // Solid Colors
+      solid_green: { background: "#1b4332" },
+      solid_slate: { background: "#0f172a" },
+      solid_blue: { background: "#0284c7" },
+      solid_pastel_blue: { background: "#e0f2fe" },
+      solid_cream: { background: "#fef3c7" },
+      solid_purple: { background: "#581c87" },
+
+      // Gradients
+      grad_sunset: { background: "linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%) fixed" },
+      grad_ocean: { background: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%) fixed" },
+      grad_northern: { background: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) fixed" },
+      grad_midnight: { background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) fixed" },
+      grad_peach: { background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) fixed" },
+      grad_forest: { background: "linear-gradient(135deg, #064e3b 0%, #022c22 100%) fixed" },
+
+      // Classroom Atmosphere
+      chalkboard: { background: "url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      watercolor: { background: "url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      space: { background: "url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      jungle: { background: "url('https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      gaming: { background: "url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      neon: { background: "url('https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      library: { background: "url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80') center/cover fixed" }
     };
 
     function handleBgChange(val) {
       if (val === 'custom') {
-        document.getElementById('bg-upload').click();
-      } else {
-        document.body.style.backgroundImage = bgPresets[val] || 'none';
+        const customData = localStorage.getItem('classroom_custom_bg_data');
+        if (customData) {
+          document.body.style.background = `url("${customData}") center/cover fixed`;
+        } else {
+          document.getElementById('bg-upload').click();
+        }
+        localStorage.setItem('classroom_selected_bg', 'custom');
+        return;
       }
+
+      // Reset base background CSS properties
+      document.body.style.background = '';
+      document.body.style.backgroundImage = '';
+      document.body.style.backgroundSize = '';
+
+      const preset = bgPresets[val];
+      if (preset) {
+        if (preset.background) document.body.style.background = preset.background;
+        if (preset.backgroundImage) document.body.style.backgroundImage = preset.backgroundImage;
+        if (preset.backgroundSize) document.body.style.backgroundSize = preset.backgroundSize;
+      }
+      
+      localStorage.setItem('classroom_selected_bg', val);
     }
 
     function uploadCustomBg(event) {
@@ -1057,7 +1150,10 @@
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          document.body.style.backgroundImage = `url("${e.target.result}")`;
+          const dataUrl = e.target.result;
+          document.body.style.background = `url("${dataUrl}") center/cover fixed`;
+          localStorage.setItem('classroom_custom_bg_data', dataUrl);
+          localStorage.setItem('classroom_selected_bg', 'custom');
         };
         reader.readAsDataURL(file);
       }
