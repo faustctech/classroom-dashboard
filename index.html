@@ -305,12 +305,12 @@
           <option value="lined">📝 Lined Notebook Paper</option>
           <option value="grid">📐 Grid / Graph Paper</option>
           <option value="dotgrid">⚪ Dot Grid Paper</option>
-          <option value="anchorchart">📌 Anchor Chart Wall</option>
+          <option value="anchorchart">📌 Empty Wooden Desk Wall</option>
         </optgroup>
         <optgroup label="Daily Agenda Templates">
-          <option value="agenda_desk">🗓️ Desk Agenda & Planner</option>
+          <option value="agenda_desk">🗓️ Flat Lay Planner Desk</option>
           <option value="agenda_cork">📌 Corkboard Notice Board</option>
-          <option value="agenda_board">📋 Chalkboard Agenda Wall</option>
+          <option value="agenda_board">📋 Clean Slate Wall</option>
         </optgroup>
         <optgroup label="Seasonal Themes">
           <option value="spring">🌸 Spring Blossom</option>
@@ -336,13 +336,13 @@
           <option value="grad_forest">🌲 Emerald Forest</option>
         </optgroup>
         <optgroup label="Classroom Atmosphere">
-          <option value="chalkboard">✏️ Classic Chalkboard</option>
+          <option value="chalkboard">✏️ Empty Chalkboard Texture</option>
           <option value="watercolor">🎨 Bright Watercolor</option>
           <option value="space">🚀 Outer Space</option>
-          <option value="jungle">🦁 Safari Jungle</option>
-          <option value="gaming">🎮 Retro Gaming</option>
+          <option value="jungle">🦁 Deep Forest Foliage</option>
+          <option value="gaming">🎮 Retro Arcade</option>
           <option value="neon">🌆 Vaporwave / Neon</option>
-          <option value="library">📚 Classic Library</option>
+          <option value="library">📚 Empty Library Bookshelves</option>
         </optgroup>
         <optgroup label="Custom">
           <option value="custom">📁 Upload Custom Image...</option>
@@ -1262,11 +1262,11 @@
       if (type) document.getElementById(`st-${type}`).classList.add('active');
     }
 
-    // --- Background Presets Configuration ---
+    // --- Background Presets Configuration (STUDENT-FREE OPTION REPLACEMENTS) ---
     const bgPresets = {
       default: { background: "#0f172a" },
 
-      // Paper & Canvas (Pure CSS Patterns)
+      // Paper & Canvas (Pure CSS Patterns - No images/people)
       lined: { 
         background: "#faf8f5", 
         backgroundImage: "linear-gradient(90deg, transparent 79px, #ff8a8a 79px, #ff8a8a 81px, transparent 81px), linear-gradient(#cbd5e1 1px, transparent 0)",
@@ -1282,14 +1282,14 @@
         backgroundImage: "radial-gradient(#94a3b8 1.5px, transparent 1.5px)",
         backgroundSize: "24px 24px"
       },
-      anchorchart: { background: "url('https://images.unsplash.com/photo-1596495578065-6e0763fa1178?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      anchorchart: { background: "url('https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
 
-      // Daily Agenda Templates
-      agenda_desk: { background: "url('https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      // Daily Agenda Templates (Empty Flat-Lays / Corkboard)
+      agenda_desk: { background: "url('https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       agenda_cork: { background: "url('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      agenda_board: { background: "url('https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      agenda_board: { background: "url('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
 
-      // Seasonal Themes
+      // Seasonal Themes (Nature Landscapes - No People)
       spring: { background: "url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       autumn: { background: "url('https://images.unsplash.com/photo-1507181179412-1e890295f84e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
@@ -1312,14 +1312,14 @@
       grad_peach: { background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) fixed" },
       grad_forest: { background: "linear-gradient(135deg, #064e3b 0%, #022c22 100%) fixed" },
 
-      // Classroom Atmosphere
-      chalkboard: { background: "url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
+      // Classroom Atmosphere (Pure Textures & Empty Interiors - Zero People)
+      chalkboard: { background: "url('https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       watercolor: { background: "url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       space: { background: "url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       jungle: { background: "url('https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       gaming: { background: "url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
       neon: { background: "url('https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      library: { background: "url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1920&q=80') center/cover fixed" }
+      library: { background: "url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1920&q=80') center/cover fixed" }
     };
 
     function handleBgChange(val) {
