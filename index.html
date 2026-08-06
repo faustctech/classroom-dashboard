@@ -371,7 +371,7 @@
       </div>
       <div id="media-list" class="media-playlist"></div>
       <div class="inputs-row" style="flex-wrap: wrap; gap: 6px;">
-        <input type="text" id="media-title" placeholder="Title (e.g. Lofi Beats)" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
+        <input type="text" id="media-title" placeholder="Title (e.g. Lesson Video)" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
         <input type="text" id="media-url" placeholder="YouTube URL..." style="flex: 1.5; min-width: 120px; font-size: 0.85rem;">
         <button class="btn btn-action" onclick="addMediaVideo()" style="font-size: 0.85rem;">➕ Add</button>
       </div>
@@ -734,8 +734,8 @@
 
     // --- Media / Video Widget Logic ---
     let defaultVideos = [
-      { name: "🎵 Lofi Study Beats", url: "https://www.youtube.com/embed/jfKfPfyJRdk" },
-      { name: "🌊 Relaxing Rain Sounds", url: "https://www.youtube.com/embed/mPZkdNFkNps" }
+      { name: "📺 Classroom Video 1", url: "https://www.youtube.com/embed/3Tv7K0FlP7I" },
+      { name: "📺 Classroom Video 2", url: "https://www.youtube.com/embed/BF7KCRDzaAw" }
     ];
 
     let mediaList = JSON.parse(localStorage.getItem('classroom_media_list')) || defaultVideos;
