@@ -511,7 +511,7 @@
         <span class="widget-title"><span class="drag-handle">⠿</span> Notes & Agenda</span>
         <button class="btn" onclick="toggleWidget('notes-widget')">✕</button>
       </div>
-      <textarea id="notes-content" style="height: 120px;" placeholder="Write daily announcements or instructions..."></textarea>
+      <textarea id="notes-content" style="height: 120px;" placeholder="Write daily announcements or instructions..." oninput="saveCurrentStateToPreset()"></textarea>
     </div>
 
   </main>
@@ -544,7 +544,7 @@
           widget.style.left = savedPositions[id].left;
           widget.style.top = savedPositions[id].top;
           widget.style.zIndex = savedPositions[id].zIndex || 10;
-          if (savedPositions[id].zIndex > highestZIndex) highestZIndex = parseInt(savedPositions[id].zIndex);
+          if (parseInt(savedPositions[id].zIndex) > highestZIndex) highestZIndex = parseInt(savedPositions[id].zIndex);
         } else {
           const left = margin + (col * colWidth);
           const top = margin + (row * rowHeight);
@@ -654,8 +654,8 @@
       };
     }
 
+    // FIX: Removed "if (!presetsData[currentPreset]) return;" so new preset names are dynamically assigned
     function saveCurrentStateToPreset() {
-      if (!presetsData[currentPreset]) return;
       presetsData[currentPreset] = captureCurrentBoardState();
       localStorage.setItem('classroom_presets', JSON.stringify(presetsData));
     }
@@ -678,7 +678,6 @@
       if (state.notes !== undefined) {
         const notesArea = document.getElementById('notes-content');
         notesArea.value = state.notes;
-        localStorage.setItem('dashboard_notes', state.notes);
       }
 
       if (state.positions) {
@@ -790,20 +789,6 @@
       reader.readAsText(file);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      renderPresetDropdown();
-      positionWidgets();
-      
-      if (presetsData[currentPreset]) {
-        applyPresetState(presetsData[currentPreset]);
-      } else {
-        const savedBg = localStorage.getItem('classroom_selected_bg') || 'summer';
-        const bgSelector = document.getElementById('bg-selector');
-        if (bgSelector) bgSelector.value = savedBg;
-        handleBgChange(savedBg);
-      }
-    });
-
     // --- Class Period Roster System ---
     let classData = JSON.parse(localStorage.getItem('classroom_classes')) || {
       "Period 1": "Alex\nSam\nJordan\nTaylor\nMorgan\nCasey",
@@ -839,6 +824,16 @@
       localStorage.setItem('classroom_classes', JSON.stringify(classData));
     }
 
+    nameListArea.addEventListener('input', () => {
+      groupListArea.value = nameListArea.value;
+      saveActiveRoster();
+    });
+
+    groupListArea.addEventListener('input', () => {
+      nameListArea.value = groupListArea.value;
+      saveActiveRoster();
+    });
+
     function switchClassPeriod(val) {
       saveActiveRoster();
       currentClass = val;
@@ -848,13 +843,13 @@
     }
 
     function addNewClassPeriod() {
-      const name = prompt("Enter new Class / Period name:");
-      if (name && name.trim()) {
-        const trimmed = name.trim();
-        if (!classData[trimmed]) classData[trimmed] = "";
+      const newName = prompt("Enter Class Period name (e.g. Period 4, Math Honor):");
+      if (newName && newName.trim()) {
+        const trimmed = newName.trim();
+        classData[trimmed] = "";
         currentClass = trimmed;
+        localStorage.setItem('classroom_classes', JSON.stringify(classData));
         localStorage.setItem('classroom_current_class', currentClass);
-        saveActiveRoster();
         renderClassDropdown();
         saveCurrentStateToPreset();
       }
@@ -863,185 +858,65 @@
     function deleteCurrentClassPeriod() {
       const keys = Object.keys(classData);
       if (keys.length <= 1) {
-        alert("You must keep at least one class period!");
+        alert("You must keep at least one Class Period!");
         return;
       }
-      if (confirm(`Delete roster for "${currentClass}"?`)) {
+      if (confirm(`Delete class period "${currentClass}"?`)) {
         delete classData[currentClass];
         currentClass = Object.keys(classData)[0];
-        localStorage.setItem('classroom_current_class', currentClass);
         localStorage.setItem('classroom_classes', JSON.stringify(classData));
+        localStorage.setItem('classroom_current_class', currentClass);
         renderClassDropdown();
         saveCurrentStateToPreset();
       }
     }
 
-    nameListArea.addEventListener('input', () => {
-      groupListArea.value = nameListArea.value;
-      saveActiveRoster();
-    });
-    groupListArea.addEventListener('input', () => {
-      nameListArea.value = groupListArea.value;
-      saveActiveRoster();
-    });
-
-    renderClassDropdown();
-
-    // --- Digital Clock Logic ---
+    // --- Clock Logic ---
     let is24Hour = false;
     function updateClock() {
       const now = new Date();
       let hours = now.getHours();
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      let ampm = '';
+      let timeStr = "";
 
-      if (!is24Hour) {
-        ampm = hours >= 12 ? ' PM' : ' AM';
+      if (is24Hour) {
+        timeStr = `${String(hours).padStart(2, '0')}:${minutes}:${seconds}`;
+      } else {
+        const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
+        timeStr = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
       }
-      hours = String(hours).padStart(2, '0');
 
-      document.getElementById('clock-display').textContent = `${hours}:${minutes}:${seconds}${ampm}`;
-      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
-      document.getElementById('clock-date').textContent = now.toLocaleDateString(undefined, options);
+      document.getElementById('clock-display').textContent = timeStr;
+      document.getElementById('clock-date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
     }
-    function toggleClockFormat() {
-      is24Hour = !is24Hour;
-      updateClock();
-    }
+    function toggleClockFormat() { is24Hour = !is24Hour; updateClock(); }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // --- Dice Roller Logic ---
-    function rollDice() {
-      const count = parseInt(document.getElementById('dice-count').value) || 1;
-      const resultContainer = document.getElementById('dice-result');
-      const sumContainer = document.getElementById('dice-sum');
-      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-      let counter = 0;
-
-      const shuffle = setInterval(() => {
-        let tempRolls = [];
-        for (let i = 0; i < count; i++) {
-          tempRolls.push(diceFaces[Math.floor(Math.random() * 6)]);
-        }
-        resultContainer.textContent = tempRolls.join(' ');
-        sumContainer.textContent = 'Rolling...';
-        counter++;
-
-        if (counter > 10) {
-          clearInterval(shuffle);
-          let finalRolls = [];
-          let sum = 0;
-          for (let i = 0; i < count; i++) {
-            const val = Math.floor(Math.random() * 6) + 1;
-            finalRolls.push(diceFaces[val - 1]);
-            sum += val;
-          }
-          resultContainer.textContent = finalRolls.join(' ');
-          sumContainer.textContent = `Total: ${sum}`;
-        }
-      }, 60);
-    }
-
-    // --- Random Group Generator Logic ---
-    function generateGroups() {
-      const text = document.getElementById('group-name-list').value.trim();
-      if (!text) return;
-      let names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-      if (names.length === 0) return;
-
-      for (let i = names.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [names[i], names[j]] = [names[j], names[i]];
-      }
-
-      const groupSize = parseInt(document.getElementById('group-size').value) || 3;
-      const output = document.getElementById('group-results');
-      output.innerHTML = '';
-
-      let groupNum = 1;
-      for (let i = 0; i < names.length; i += groupSize) {
-        const groupMembers = names.slice(i, i + groupSize);
-        const groupDiv = document.createElement('div');
-        groupDiv.style.background = 'rgba(0,0,0,0.25)';
-        groupDiv.style.padding = '8px';
-        groupDiv.style.borderRadius = '6px';
-        groupDiv.style.fontSize = '0.9rem';
-        groupDiv.innerHTML = `<strong>Group ${groupNum++}:</strong> ${groupMembers.join(', ')}`;
-        output.appendChild(groupDiv);
-      }
-    }
-
-    // --- Sound Alerts for Timer ---
-    function playAlarmSound(type) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-
-      const playNote = (freq, startTime, duration, soundType = 'sine') => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = soundType;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + startTime);
-        osc.stop(ctx.currentTime + startTime + duration);
-      };
-
-      if (type === 'beep') {
-        playNote(880, 0.0, 0.15, 'square');
-        playNote(880, 0.2, 0.15, 'square');
-        playNote(880, 0.4, 0.3, 'square');
-      } else if (type === 'bell') {
-        playNote(440, 0.0, 1.2, 'triangle');
-        playNote(880, 0.0, 1.2, 'sine');
-      } else if (type === 'fanfare') {
-        playNote(523.25, 0.0, 0.15);
-        playNote(659.25, 0.15, 0.15);
-        playNote(783.99, 0.30, 0.15);
-        playNote(1046.50, 0.45, 0.6);
-      } else {
-        playNote(523.25, 0.0, 0.4);
-        playNote(659.25, 0.2, 0.4);
-        playNote(783.99, 0.4, 0.8);
-      }
-    }
-
-    function testTimerSound() {
-      const soundType = document.getElementById('timer-sound').value;
-      playAlarmSound(soundType);
-    }
-
     // --- Timer Logic ---
     let timerInterval = null;
-    let totalSeconds = 300;
+    let timerSeconds = 300;
 
     function updateTimerDisplay() {
-      const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-      const secs = (totalSeconds % 60).toString().padStart(2, '0');
-      document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      document.getElementById('timer-display').textContent = `${m}:${s}`;
     }
 
     function startTimer() {
       if (timerInterval) return;
-      const inputMins = parseInt(document.getElementById('timer-min').value);
-      if (!isNaN(inputMins) && totalSeconds === 300) {
-        totalSeconds = inputMins * 60;
-      }
+      const minInput = parseInt(document.getElementById('timer-min').value) || 0;
+      if (timerSeconds <= 0) timerSeconds = minInput * 60;
+
       timerInterval = setInterval(() => {
-        if (totalSeconds > 0) {
-          totalSeconds--;
+        if (timerSeconds > 0) {
+          timerSeconds--;
           updateTimerDisplay();
         } else {
-          clearInterval(timerInterval);
-          timerInterval = null;
-          const soundType = document.getElementById('timer-sound').value;
-          playAlarmSound(soundType);
+          pauseTimer();
+          playTimerAudio();
         }
       }, 1000);
     }
@@ -1053,318 +928,250 @@
 
     function resetTimer() {
       pauseTimer();
-      const inputMins = parseInt(document.getElementById('timer-min').value) || 5;
-      totalSeconds = inputMins * 60;
+      const minInput = parseInt(document.getElementById('timer-min').value) || 5;
+      timerSeconds = minInput * 60;
       updateTimerDisplay();
     }
 
-    // --- Slides & Media Player Logic (Google Slides, Canva, YouTube) ---
-    let defaultVideos = [
-      { name: "📺 Classroom Video 1", url: "https://www.youtube.com/embed/3Tv7K0FlP7I" },
-      { name: "📺 Classroom Video 2", url: "https://www.youtube.com/embed/BF7KCRDzaAw" }
-    ];
+    function testTimerSound() { playTimerAudio(); }
 
-    let mediaList = JSON.parse(localStorage.getItem('classroom_media_list')) || defaultVideos;
-    let activeMediaIndex = 0;
-
-    function parseEmbedUrl(rawUrl) {
-      let url = rawUrl.trim();
-
-      if (url.includes('<iframe') && url.includes('src="')) {
-        const match = url.match(/src="([^"]+)"/);
-        if (match) url = match[1];
-      }
-
-      if (url.includes('youtu.be/')) {
-        const id = url.split('youtu.be/')[1].split('?')[0];
-        return `https://www.youtube.com/embed/${id}`;
-      } else if (url.includes('youtube.com/watch')) {
-        const urlParams = new URLSearchParams(url.split('?')[1]);
-        const id = urlParams.get('v');
-        return `https://www.youtube.com/embed/${id}`;
-      }
-
-      if (url.includes('docs.google.com/presentation/d/')) {
-        const base = url.split('/edit')[0].split('/pub')[0].split('/embed')[0];
-        return `${base}/embed?start=false&loop=false&delayms=3000`;
-      }
-
-      if (url.includes('canva.com/design/')) {
-        if (!url.includes('view?embed')) {
-          const base = url.split('?')[0];
-          return `${base}/view?embed`;
-        }
-        return url;
-      }
-
-      return url;
+    function playTimerAudio() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.8);
     }
 
-    function renderMediaList() {
-      const container = document.getElementById('media-list');
-      const player = document.getElementById('media-player');
+    // --- Dice Logic ---
+    const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    function rollDice() {
+      const count = parseInt(document.getElementById('dice-count').value);
+      let res = [];
+      let sum = 0;
+      for (let i = 0; i < count; i++) {
+        const val = Math.floor(Math.random() * 6) + 1;
+        res.push(diceIcons[val - 1]);
+        sum += val;
+      }
+      document.getElementById('dice-result').textContent = res.join(' ');
+      document.getElementById('dice-sum').textContent = `Total: ${sum}`;
+    }
+
+    // --- Random Picker Logic ---
+    function pickRandomName() {
+      const list = nameListArea.value.split('\n').map(n => n.trim()).filter(n => n);
+      if (list.length === 0) {
+        document.getElementById('picker-result').textContent = "Empty";
+        return;
+      }
+      const choice = list[Math.floor(Math.random() * list.length)];
+      document.getElementById('picker-result').textContent = choice;
+    }
+
+    // --- Group Generator Logic ---
+    function generateGroups() {
+      const list = groupListArea.value.split('\n').map(n => n.trim()).filter(n => n);
+      const size = parseInt(document.getElementById('group-size').value) || 2;
+      const container = document.getElementById('group-results');
       container.innerHTML = '';
 
-      if (mediaList.length > 0) {
-        player.src = mediaList[activeMediaIndex].url;
-      } else {
-        player.src = '';
-      }
+      if (list.length === 0) return;
 
-      mediaList.forEach((item, idx) => {
+      const shuffled = [...list].sort(() => Math.random() - 0.5);
+      let gNum = 1;
+
+      for (let i = 0; i < shuffled.length; i += size) {
+        const chunk = shuffled.slice(i, i + size);
         const div = document.createElement('div');
-        div.className = `media-item ${idx === activeMediaIndex ? 'active' : ''}`;
-        div.onclick = () => selectMediaVideo(idx);
-        div.innerHTML = `<span>▶ ${item.name}</span><button class="link-del-btn" onclick="deleteMediaVideo(event, ${idx})">✕</button>`;
+        div.style.background = 'rgba(0,0,0,0.2)';
+        div.style.padding = '6px';
+        div.style.borderRadius = '6px';
+        div.style.fontSize = '0.85rem';
+        div.innerHTML = `<strong>Group ${gNum++}:</strong> ${chunk.join(', ')}`;
         container.appendChild(div);
-      });
-    }
-
-    function selectMediaVideo(index) {
-      activeMediaIndex = index;
-      renderMediaList();
-    }
-
-    function addMediaVideo() {
-      const titleInput = document.getElementById('media-title');
-      const urlInput = document.getElementById('media-url');
-      let title = titleInput.value.trim();
-      let rawUrl = urlInput.value.trim();
-
-      if (!title || !rawUrl) return;
-
-      const embedUrl = parseEmbedUrl(rawUrl);
-      mediaList.push({ name: title, url: embedUrl });
-      localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
-      
-      activeMediaIndex = mediaList.length - 1;
-      titleInput.value = '';
-      urlInput.value = '';
-      renderMediaList();
-    }
-
-    function deleteMediaVideo(event, index) {
-      event.stopPropagation();
-      mediaList.splice(index, 1);
-      if (activeMediaIndex >= mediaList.length) {
-        activeMediaIndex = Math.max(0, mediaList.length - 1);
       }
-      localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
-      renderMediaList();
     }
 
-    renderMediaList();
+    // --- Work Status Logic ---
+    function setStatus(mode) {
+      document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`st-${mode}`).classList.add('active');
+    }
 
-    // --- Quick Links Widget Logic ---
-    let defaultLinks = [
-      { name: "Classroom", url: "https://classroom.google.com" },
-      { name: "Kahoot", url: "https://kahoot.com" },
-      { name: "Canva", url: "https://canva.com" },
-      { name: "Google Drive", url: "https://drive.google.com" }
+    // --- Background Theme Logic ---
+    function handleBgChange(val) {
+      const b = document.body;
+      const customInput = document.getElementById('bg-upload');
+
+      if (val === 'custom') {
+        customInput.click();
+        return;
+      }
+
+      const themes = {
+        summer: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80',
+        spring: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=1920&q=80',
+        autumn: 'https://images.unsplash.com/photo-1507499739999-097706ad8914?auto=format&fit=crop&w=1920&q=80',
+        winter: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=1920&q=80',
+        halloween: 'https://images.unsplash.com/photo-1509557965875-b88c97052f0e?auto=format&fit=crop&w=1920&q=80',
+        default: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        solid_green: '#064e3b',
+        solid_slate: '#0f172a',
+        solid_blue: '#1e3a8a',
+        solid_pastel_blue: '#38bdf8',
+        solid_cream: '#fef3c7',
+        solid_purple: '#581c87'
+      };
+
+      if (themes[val]) {
+        if (themes[val].startsWith('http')) {
+          b.style.background = `url('${themes[val]}') center/cover fixed`;
+        } else {
+          b.style.background = themes[val];
+        }
+      }
+      saveCurrentStateToPreset();
+    }
+
+    function uploadCustomBg(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.body.style.background = `url('${evt.target.result}') center/cover fixed`;
+        saveCurrentStateToPreset();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // --- Quick Links Logic ---
+    let quickLinks = JSON.parse(localStorage.getItem('classroom_quick_links')) || [
+      { title: 'Google', url: 'https://google.com' }
     ];
-
-    let quickLinks = JSON.parse(localStorage.getItem('classroom_quick_links')) || defaultLinks;
 
     function renderQuickLinks() {
       const container = document.getElementById('links-container');
       container.innerHTML = '';
       quickLinks.forEach((link, idx) => {
-        const a = document.createElement('a');
-        a.className = 'link-card';
-        a.href = link.url;
-        a.target = '_blank';
-        a.innerHTML = `<span>🌐 ${link.name}</span><button class="link-del-btn" onclick="deleteQuickLink(event, ${idx})">✕</button>`;
-        container.appendChild(a);
+        const card = document.createElement('a');
+        card.className = 'link-card';
+        card.href = link.url;
+        card.target = '_blank';
+        card.innerHTML = `<span>${link.title}</span><button class="link-del-btn" onclick="deleteQuickLink(event, ${idx})">✕</button>`;
+        container.appendChild(card);
       });
     }
 
     function addQuickLink() {
-      const nameInput = document.getElementById('link-title');
-      const urlInput = document.getElementById('link-url');
-      let name = nameInput.value.trim();
-      let url = urlInput.value.trim();
-
-      if (!name || !url) return;
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-
-      quickLinks.push({ name, url });
+      const t = document.getElementById('link-title').value.trim();
+      let u = document.getElementById('link-url').value.trim();
+      if (!t || !u) return;
+      if (!u.startsWith('http')) u = 'https://' + u;
+      quickLinks.push({ title: t, url: u });
       localStorage.setItem('classroom_quick_links', JSON.stringify(quickLinks));
-      nameInput.value = '';
-      urlInput.value = '';
       renderQuickLinks();
+      document.getElementById('link-title').value = '';
+      document.getElementById('link-url').value = '';
     }
 
-    function deleteQuickLink(event, index) {
-      event.preventDefault();
-      event.stopPropagation();
-      quickLinks.splice(index, 1);
+    function deleteQuickLink(e, idx) {
+      e.preventDefault();
+      quickLinks.splice(idx, 1);
       localStorage.setItem('classroom_quick_links', JSON.stringify(quickLinks));
       renderQuickLinks();
     }
 
-    renderQuickLinks();
+    // --- Media Player Logic ---
+    let mediaList = JSON.parse(localStorage.getItem('classroom_media_list')) || [];
 
-    // --- Random Name Picker ---
-    function pickRandomName() {
-      const text = document.getElementById('name-list').value.trim();
-      if (!text) return;
-      const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-      if (names.length === 0) return;
-
-      const resultContainer = document.getElementById('picker-result');
-      let counter = 0;
-      const shuffle = setInterval(() => {
-        resultContainer.textContent = names[Math.floor(Math.random() * names.length)];
-        counter++;
-        if (counter > 15) {
-          clearInterval(shuffle);
-          const winner = names[Math.floor(Math.random() * names.length)];
-          resultContainer.textContent = `🎉 ${winner}`;
-        }
-      }, 50);
-    }
-
-    // --- Noise Meter ---
-    let audioCtx, analyser, micStream;
-    async function initNoiseMeter() {
-      const btn = document.getElementById('mic-btn');
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        const source = audioCtx.createMediaStreamSource(micStream);
-        source.connect(analyser);
-        analyser.fftSize = 256;
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        btn.textContent = 'Active';
-        btn.style.background = '#10b981';
-        btn.disabled = true;
-
-        function renderMeter() {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          let volumePercentage = Math.min(100, Math.round(((sum / dataArray.length) / 128) * 100));
-
-          const meterFill = document.getElementById('meter-fill');
-          meterFill.style.width = volumePercentage + '%';
-          if (volumePercentage > 65) meterFill.style.backgroundColor = '#ef4444';
-          else if (volumePercentage > 35) meterFill.style.backgroundColor = '#f59e0b';
-          else meterFill.style.backgroundColor = '#10b981';
-
-          requestAnimationFrame(renderMeter);
-        }
-        renderMeter();
-      } catch (err) {
-        alert('Microphone permission required for noise meter.');
-      }
-    }
-
-    // --- Work Status ---
-    function setStatus(type) {
-      document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
-      if (type) document.getElementById(`st-${type}`).classList.add('active');
-    }
-
-    // --- Background Presets Configuration ---
-    const bgPresets = {
-      default: { background: "#0f172a" },
-      summer: { background: "url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      lined: { 
-        background: "#faf8f5", 
-        backgroundImage: "linear-gradient(90deg, transparent 79px, #ff8a8a 79px, #ff8a8a 81px, transparent 81px), linear-gradient(#cbd5e1 1px, transparent 0)",
-        backgroundSize: "100% 100%, 100% 28px"
-      },
-      grid: { 
-        background: "#f0f4f8", 
-        backgroundImage: "linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)",
-        backgroundSize: "24px 24px"
-      },
-      dotgrid: {
-        background: "#faf8f5",
-        backgroundImage: "radial-gradient(#94a3b8 1.5px, transparent 1.5px)",
-        backgroundSize: "24px 24px"
-      },
-      anchorchart: { background: "url('https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      agenda_desk: { background: "url('https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      agenda_cork: { background: "url('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      agenda_board: { background: "url('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      spring: { background: "url('https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      autumn: { background: "url('https://images.unsplash.com/photo-1507181179412-1e890295f84e?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      winter: { background: "url('https://images.unsplash.com/photo-1483664852095-d6cc6870702d?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      halloween: { background: "url('https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      solid_green: { background: "#1b4332" },
-      solid_slate: { background: "#0f172a" },
-      solid_blue: { background: "#0284c7" },
-      solid_pastel_blue: { background: "#e0f2fe" },
-      solid_cream: { background: "#fef3c7" },
-      solid_purple: { background: "#581c87" },
-      grad_sunset: { background: "linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%) fixed" },
-      grad_ocean: { background: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%) fixed" },
-      grad_northern: { background: "linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) fixed" },
-      grad_midnight: { background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) fixed" },
-      grad_peach: { background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) fixed" },
-      grad_forest: { background: "linear-gradient(135deg, #064e3b 0%, #022c22 100%) fixed" },
-      chalkboard: { background: "url('https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      watercolor: { background: "url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      space: { background: "url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      jungle: { background: "url('https://images.unsplash.com/photo-1511497584788-876761c11969?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      gaming: { background: "url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      neon: { background: "url('https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1920&q=80') center/cover fixed" },
-      library: { background: "url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1920&q=80') center/cover fixed" }
-    };
-
-    function handleBgChange(val) {
-      if (val === 'custom') {
-        const customData = localStorage.getItem('classroom_custom_bg_data');
-        if (customData) {
-          document.body.style.background = `url("${customData}") center/cover fixed`;
-        } else {
-          document.getElementById('bg-upload').click();
-        }
-        localStorage.setItem('classroom_selected_bg', 'custom');
-        saveCurrentStateToPreset();
-        return;
-      }
-
-      document.body.style.background = '';
-      document.body.style.backgroundImage = '';
-      document.body.style.backgroundSize = '';
-
-      const preset = bgPresets[val];
-      if (preset) {
-        if (preset.background) document.body.style.background = preset.background;
-        if (preset.backgroundImage) document.body.style.backgroundImage = preset.backgroundImage;
-        if (preset.backgroundSize) document.body.style.backgroundSize = preset.backgroundSize;
-      }
-      
-      localStorage.setItem('classroom_selected_bg', val);
-      saveCurrentStateToPreset();
-    }
-
-    function uploadCustomBg(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const dataUrl = e.target.result;
-          document.body.style.background = `url("${dataUrl}") center/cover fixed`;
-          localStorage.setItem('classroom_custom_bg_data', dataUrl);
-          localStorage.setItem('classroom_selected_bg', 'custom');
-          saveCurrentStateToPreset();
+    function renderMediaList() {
+      const container = document.getElementById('media-list');
+      container.innerHTML = '';
+      mediaList.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'media-item';
+        div.innerHTML = `<span>${item.title}</span><button class="link-del-btn" onclick="deleteMediaItem(event, ${idx})">✕</button>`;
+        div.onclick = (e) => {
+          if (e.target.classList.contains('link-del-btn')) return;
+          document.getElementById('media-player').src = item.url;
+          document.querySelectorAll('.media-item').forEach(m => m.classList.remove('active'));
+          div.classList.add('active');
         };
-        reader.readAsDataURL(file);
-      }
+        container.appendChild(div);
+      });
     }
 
-    // Persistence for Notes
-    const notesArea = document.getElementById('notes-content');
-    notesArea.value = localStorage.getItem('dashboard_notes') || '';
-    notesArea.addEventListener('input', () => {
-      localStorage.setItem('dashboard_notes', notesArea.value);
-      saveCurrentStateToPreset();
+    function addMediaVideo() {
+      const t = document.getElementById('media-title').value.trim();
+      let u = document.getElementById('media-url').value.trim();
+      if (!t || !u) return;
+
+      if (u.includes('youtube.com/watch?v=')) {
+        u = u.replace('watch?v=', 'embed/');
+      } else if (u.includes('youtu.be/')) {
+        u = u.replace('youtu.be/', 'www.youtube.com/embed/');
+      }
+
+      mediaList.push({ title: t, url: u });
+      localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
+      renderMediaList();
+      document.getElementById('media-title').value = '';
+      document.getElementById('media-url').value = '';
+    }
+
+    function deleteMediaItem(e, idx) {
+      e.stopPropagation();
+      mediaList.splice(idx, 1);
+      localStorage.setItem('classroom_media_list', JSON.stringify(mediaList));
+      renderMediaList();
+    }
+
+    // --- Noise Monitor Logic ---
+    function initNoiseMeter() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const mic = ctx.createMediaStreamSource(stream);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 256;
+          mic.connect(analyser);
+
+          const data = new Uint8Array(analyser.frequencyBinCount);
+          const fill = document.getElementById('meter-fill');
+          document.getElementById('mic-btn').style.display = 'none';
+
+          function updateMeter() {
+            analyser.getByteFrequencyData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i];
+            const avg = sum / data.length;
+            const pct = Math.min(100, Math.round((avg / 128) * 100));
+            fill.style.width = `${pct}%`;
+            fill.style.backgroundColor = pct > 75 ? '#ef4444' : pct > 45 ? '#f59e0b' : '#10b981';
+            requestAnimationFrame(updateMeter);
+          }
+          updateMeter();
+        })
+        .catch(() => alert("Microphone access denied."));
+    }
+
+    // --- Window Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPresetDropdown();
+      renderClassDropdown();
+      renderQuickLinks();
+      renderMediaList();
+      positionWidgets();
+      
+      if (presetsData[currentPreset]) {
+        applyPresetState(presetsData[currentPreset]);
+      }
     });
   </script>
 </body>
